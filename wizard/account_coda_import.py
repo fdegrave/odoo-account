@@ -89,43 +89,6 @@ class CodaImport(models.TransientModel):
                                         'are not supported'))
             else:  # Something else, not supported
                 raise ValidationError(_('Error R1003: Unsupported bank account structure'))
-        statement['bank_account'] = False
-        # Belgian Account Numbers are composed of 12 digits.
-        # In Odoo, the user can fill the bank number in any format: With or without IBan code,
-        # with or without spaces, with or without '-'
-        # The two following sql requests handle those cases.
-        if len(statement['acc_number']) >= 12:
-            # If the Account Number is >= 12 digits, it is most likely a Belgian Account Number
-            # (With or without IBAN).
-            # The following request try to find the Account Number using a 'like' operator.
-            # So, if the Account Number is stored with IBAN code, it can be found thanks to this.
-            self._cr.execute("select id from res_partner_bank where "
-                             "replace(replace(acc_number,' ',''),'-','') like %s",
-                             ('%' + statement['acc_number'] + '%',))
-        else:
-            # This case is necessary to avoid cases like the Account Number in the CODA file is set to a single
-            # or few digits,
-            # and so a 'like' operator would return the first account number in the database which matches.
-            self._cr.execute("select id from res_partner_bank where replace(replace(acc_number,' ',''),'-','') = %s",
-                             (statement['acc_number'],))
-        bank_ids = [r[0] for r in self._cr.fetchall()]
-        # Filter bank accounts which are not allowed
-        banks = self.env['res.partner.bank'].search([('id', 'in', bank_ids)])
-        for bank_acc in banks:
-            if (bank_acc.journal_id and
-                ((bank_acc.journal_id.currency and
-                  bank_acc.journal_id.currency.name == statement['currency']) or
-                 (not bank_acc.journal_id.currency and
-                  bank_acc.journal_id.company_id.currency_id.name == statement['currency']))):
-                statement['journal_id'] = bank_acc.journal_id
-                statement['bank_account'] = bank_acc
-                break
-        if not statement['bank_account']:
-            raise ValidationError(_("Error R1004: No matching Bank Account (with Account Journal) "
-                                    "found.\n\nPlease set-up a Bank Account with '%s' as "
-                                    "Account Number and '%s' as Currency and an "
-                                    "Account Journal.") % (statement['acc_number'],
-                                                           statement['currency']))
         statement['description'] = rmspaces(line[90:125])
         statement['balance_start'] = float(rmspaces(line[43:58])) / 1000
         if line[42] == '1':  # 1 = Debit, the starting balance is negative
