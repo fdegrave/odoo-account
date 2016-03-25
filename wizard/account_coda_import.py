@@ -25,6 +25,7 @@ import time
 from openerp import api, models, fields, _
 from openerp.exceptions import ValidationError
 from openerp import tools
+from openerp.addons.base.res.res_bank import sanitize_account_number
 
 import logging
 
@@ -71,24 +72,23 @@ class CodaImport(models.TransientModel):
     def _parse_line_1(self, line, statement):
         # Statement details
         if statement['version'] == '1':
-            statement['acc_number'] = rmspaces(line[5:17])
+            statement['acc_number'] = sanitize_account_number(line[5:17])
             statement['currency'] = rmspaces(line[18:21])
         elif statement['version'] == '2':
             if line[1] == '0':  # Belgian bank account BBAN structure
-                statement['acc_number'] = rmspaces(line[5:17])
+                statement['acc_number'] = sanitize_account_number(line[5:17])
                 statement['currency'] = rmspaces(line[18:21])
             elif line[1] == '1':  # foreign bank account BBAN structure
                 raise ValidationError(_('Error R1001: Foreign bank accounts with BBAN '
                                         'structure are not supported'))
             elif line[1] == '2':    # Belgian bank account IBAN structure
-                statement['acc_number'] = rmspaces(line[5:21])
+                statement['acc_number'] = sanitize_account_number(line[5:21])
                 statement['currency'] = rmspaces(line[39:42])
             elif line[1] == '3':    # foreign bank account IBAN structure
                 raise ValidationError(_('Error R1002: Foreign bank accounts with IBAN structure '
                                         'are not supported'))
             else:  # Something else, not supported
                 raise ValidationError(_('Error R1003: Unsupported bank account structure'))
-        statement['journal_id'] = False
         statement['bank_account'] = False
         # Belgian Account Numbers are composed of 12 digits.
         # In Odoo, the user can fill the bank number in any format: With or without IBan code,
@@ -190,16 +190,16 @@ class CodaImport(models.TransientModel):
                 raise ValidationError(_('CODA parsing error on movement data record 2.3, seq nr %s!'
                                         'Please report this issue via your Odoo support channel.') % line[2:10])
             if statement['version'] == '1':
-                statement['lines'][-1]['counterpartyNumber'] = rmspaces(line[10:22])
+                statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
                 statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:73])
                 statement['lines'][-1]['counterpartyAddress'] = rmspaces(line[73:125])
                 statement['lines'][-1]['counterpartyCurrency'] = ''
             else:
                 if line[22] == ' ':
-                    statement['lines'][-1]['counterpartyNumber'] = rmspaces(line[10:22])
+                    statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
                     statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[23:26])
                 else:
-                    statement['lines'][-1]['counterpartyNumber'] = rmspaces(line[10:44])
+                    statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:44])
                     statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[44:47])
                 statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:82])
                 statement['lines'][-1]['communication'] += rmspaces(line[82:125])
@@ -256,136 +256,90 @@ class CodaImport(models.TransientModel):
             statement['balance_end_real'] = statement['balance_start'] + \
                 statement['balancePlus'] - statement['balanceMin']
 
+    def _get_transactions(self, coda_statement):
+        transactions = []
+        for line in coda_statement['lines']:
+            transaction = {}
+            if line['type'] == 'information':
+                coda_statement['coda_note'] = "\n".join([coda_statement['coda_note'],
+                                                         line['type'].title() + ' with Ref. ' + str(line['ref']),
+                                                         'Date: ' + str(line['entryDate']),
+                                                         'Communication: ' + line['communication'], ''])
+            elif line['type'] == 'communication':
+                coda_statement['coda_note'] = "\n".join([coda_statement['coda_note'],
+                                                         line['type'].title() + ' with Ref. ' + str(line['ref']),
+                                                         'Ref: ', 'Communication: ' + line['communication'], ''])
+            elif line['type'] == 'normal':
+                note = []
+                if 'counterpartyAddress' in line and line['counterpartyAddress'] != '':
+                    note.append(_('Counter Party Address') + ': ' + line['counterpartyAddress'])
+                structured_com = False
+                if line['communication_struct'] and line.get('communication_type') == '101':
+                    structured_com = line['communication']
+                if line.get('communication'):
+                    note.append(_('Communication') + ': ' + line['communication'])
+                if line.get('counterpartyNumber') and int(line['counterpartyNumber']):
+                    note.append(_('Counter Party Account') + ': ' + line['counterpartyNumber'])
+                    transaction['account_number'] = line['counterpartyNumber']
+                if line.get('counterpartyName'):
+                    note.append(_('Counter Party') + ': ' + line['counterpartyName'])
+                    transaction['partner_name'] = line['counterpartyName']
+                transaction.update({
+                    'name': structured_com or (line.get('communication', '') != '' and line['communication'] or '/'),
+                    'date': line['entryDate'],
+                    'amount': line['amount'],
+                    'unique_import_id': line['sequence'],
+                    'note': "\n".join(note),
+                    'ref': line['ref'],
+                })
+                transactions.append(transaction)
+        return transactions
+
     @api.model
     def coda_parsing(self, batch=False, coda_file=None):
         self.ensure_one()
         coda_data = str(coda_file) if batch else self.coda_data
         recordlist = unicode(base64.decodestring(coda_data), 'windows-1252', 'strict').split('\n')
+        coda_statements = []
         statements = []
         self.global_comm = {}
         for line in recordlist:
-            self.parse_line(line, statements)
-        for i, statement in enumerate(statements):
-            statement['coda_note'] = ''
-            balance_start_check_date = ((len(statement['lines']) > 0 and statement['lines'][0]['entryDate']) or
-                                        statement['date'])
+            self.parse_line(line, coda_statements)
+        for coda_st in coda_statements:
+            coda_st['coda_note'] = ''
+            balance_start_check_date = ((len(coda_st['lines']) > 0 and coda_st['lines'][0]['entryDate']) or
+                                        coda_st['date'])
             self._cr.execute('''SELECT balance_end_real
                                 FROM account_bank_statement
                                 WHERE journal_id = %s and date <= %s
-                                ORDER BY date DESC,id DESC LIMIT 1''', (statement['journal_id'].id,
+                                ORDER BY date DESC,id DESC LIMIT 1''', (coda_st['journal_id'].id,
                                                                         balance_start_check_date))
             bal = self._cr.fetchone()
             balance_start_check = bal and bal[0]
             if balance_start_check is None:
-                journal = statement['journal_id']
+                journal = coda_st['journal_id']
                 if (journal.default_debit_account_id and
                         (journal.default_credit_account_id == journal.default_debit_account_id)):
                     balance_start_check = journal.default_debit_account_id.balance
                 else:
                     raise ValidationError(_('Configuration Error in journal %s!\nPlease verify the '
                                             'Default Debit and Credit Account settings.') % journal.name)
-            if balance_start_check != statement['balance_start']:
-                statement['coda_note'] = (_("The CODA Statement %s Starting Balance (%.2f) does not correspond with "
-                                            "the previous Closing Balance (%.2f) in journal %s!") %
-                                           (statement['description'] + ' #' + statement['paperSeqNumber'],
-                                            statement['balance_start'], balance_start_check,
-                                            statement['journal_id'].name))
-            if not(statement.get('date')):
+            if balance_start_check != coda_st['balance_start']:
+                coda_st['coda_note'] = (_("The CODA Statement %s Starting Balance (%.2f) does not correspond with "
+                                          "the previous Closing Balance (%.2f) in journal %s!") %
+                                        (coda_st['description'] + ' #' + coda_st['paperSeqNumber'],
+                                         coda_st['balance_start'], balance_start_check,
+                                         coda_st['journal_id'].name))
+            if not(coda_st.get('date')):
                 raise ValidationError(_(' No transactions or no period in coda file !'))
-            res = {
-                'name': statement['paperSeqNumber'],
-                'date': statement['date'],
-                'journal_id': statement['journal_id'].id,
-                'period_id': statement['period_id'],
-                'balance_start': statement['balance_start'],
-                'balance_end_real': statement['balance_end_real'],
-            }
-            for line in statement['lines']:
-                if line['type'] == 'information':
-                    statement['coda_note'] = "\n".join([statement['coda_note'], line['type'].title(
-                    ) + ' with Ref. ' + str(line['ref']), 'Date: ' + str(line['entryDate']), 'Communication: ' + line['communication'], ''])
-                elif line['type'] == 'communication':
-                    statement['coda_note'] = "\n".join([statement['coda_note'], line['type'].title(
-                    ) + ' with Ref. ' + str(line['ref']), 'Ref: ', 'Communication: ' + line['communication'], ''])
-                elif line['type'] == 'normal':
-                    note = []
-                    if 'counterpartyName' in line and line['counterpartyName'] != '':
-                        note.append(_('Counter Party') + ': ' + line['counterpartyName'])
-                    else:
-                        line['counterpartyName'] = False
-                    if 'counterpartyNumber' in line and line['counterpartyNumber'] != '':
-                        try:
-                            if int(line['counterpartyNumber']) == 0:
-                                line['counterpartyNumber'] = False
-                        except:
-                            pass
-                        if line['counterpartyNumber']:
-                            note.append(_('Counter Party Account') + ': ' + line['counterpartyNumber'])
-                    else:
-                        line['counterpartyNumber'] = False
-
-                    if 'counterpartyAddress' in line and line['counterpartyAddress'] != '':
-                        note.append(_('Counter Party Address') + ': ' + line['counterpartyAddress'])
-                    partner_id = None
-                    structured_com = False
-                    bank_account_id = False
-                    if line['communication_struct'] and 'communication_type' in line and line['communication_type'] == '101':
-                        structured_com = line['communication']
-                    if 'counterpartyNumber' in line and line['counterpartyNumber']:
-                        account = str(line['counterpartyNumber'])
-                        domain = [('acc_number', '=', account)]
-                        iban = account[0:2].isalpha()
-                        if iban:
-                            n = 4
-                            space_separated_account = ' '.join(account[i:i + n] for i in range(0, len(account), n))
-                            domain = ['|', ('acc_number', '=', space_separated_account)] + domain
-                        ids = self.pool.get('res.partner.bank').search(cr, uid, domain)
-                        if ids:
-                            bank_account_id = ids[0]
-                            bank_account = self.pool.get('res.partner.bank').browse(
-                                cr, uid, bank_account_id, context=context)
-                            line['counterpartyNumber'] = bank_account.acc_number
-                            partner_id = bank_account.partner_id.id
-                        else:
-                            # create the bank account, not linked to any partner. The reconciliation will link the partner manually
-                            # chosen at the bank statement final confirmation time.
-                            try:
-                                type_model, type_id = self.pool.get(
-                                    'ir.model.data').get_object_reference(cr, uid, 'base', 'bank_normal')
-                                type_id = self.pool.get('res.partner.bank.type').browse(
-                                    cr, uid, type_id, context=context)
-                                bank_code = type_id.code
-                            except ValueError:
-                                bank_code = 'bank'
-                            bank_account_id = self.pool.get('res.partner.bank').create(
-                                cr, uid, {'acc_number': str(line['counterpartyNumber']), 'state': bank_code}, context=context)
-                    if line.get('communication', ''):
-                        note.append(_('Communication') + ': ' + line['communication'])
-                    data = {
-                        'name': structured_com or (line.get('communication', '') != '' and line['communication'] or '/'),
-                        'note': "\n".join(note),
-                        'date': line['entryDate'],
-                        'amount': line['amount'],
-                        'partner_id': partner_id,
-                        'partner_name': line['counterpartyName'],
-                        'statement_id': statement['id'],
-                        'ref': line['ref'],
-                        'sequence': line['sequence'],
-                        'bank_account_id': bank_account_id,
-                    }
-            if statement['coda_note'] != '':
-                self.pool.get('account.bank.statement').write(
-                    cr, uid, [statement['id']], {'coda_note': statement['coda_note']}, context=context)
-        model, action_id = self.pool.get('ir.model.data').get_object_reference(
-            cr, uid, 'account', 'action_bank_reconcile_bank_statements')
-        action = self.pool[model].browse(cr, uid, action_id, context=context)
-        statements_ids = [statement['id'] for statement in statements]
-        return {
-            'name': action.name,
-            'tag': action.tag,
-            'context': {'statement_ids': statements_ids},
-            'type': 'ir.actions.client',
-        }
+            statements.append({
+                'name': coda_st['paperSeqNumber'],
+                'date': coda_st['date'],
+                'balance_start': coda_st['balance_start'],
+                'balance_end_real': coda_st['balance_end_real'],
+                'transactions': self._get_transactions(coda_st),
+            })
+        return (currency, account_number, statements)
 
 
 class AccountBankStatementImport(models.TransientModel):
@@ -414,5 +368,7 @@ class AccountBankStatementImport(models.TransientModel):
                         -o 'note': string
                         -o 'partner_name': string
                         -o 'ref': string
+
+        The jhounral to use is deducted from the bank account for which we import the statements
         """
         return super(AccountBankStatementImport, self)._parse_file(data_file)
