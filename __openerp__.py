@@ -72,10 +72,12 @@ V2.2 specifications.
 If required, you can manually adjust the descriptions via the CODA configuration menu.
 ''',
     'depends': ['account_voucher', 'base_iban', 'l10n_be_invoice_bba'],
-    'demo': ['demo/l10n_be_coda_demo.xml'],
+    'demo': [
+        #         'demo/l10n_be_coda_demo.xml'
+    ],
     'data': [
-        'views/l10n_be_coda_view.xml',
-        'wizard/l10n_be_coda_wizard.xml',
+        #         'views/l10n_be_coda_view.xml',
+        #         'wizard/l10n_be_coda_wizard.xml',
     ],
     'auto_install': False,
     'website': 'https://www.odoo.com/page/accounting',
