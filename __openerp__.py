@@ -22,7 +22,7 @@
 {
     'name': 'Belgium - Import Bank CODA Statements',
     'version': '2.1',
-    'author': 'Noviat',
+    'author': 'University of Namur',
     'category': 'Accounting & Finance',
     'description': '''
 Module to import CODA bank statements.
@@ -71,13 +71,11 @@ description provided by the CODA configuration tables is based upon the CODA
 V2.2 specifications.
 If required, you can manually adjust the descriptions via the CODA configuration menu.
 ''',
-    'depends': ['account_voucher', 'base_iban', 'l10n_be_invoice_bba'],
+    'depends': ['l10n_be_invoice_bba'],
     'demo': [
-        #         'demo/l10n_be_coda_demo.xml'
     ],
     'data': [
-        #         'views/l10n_be_coda_view.xml',
-        #         'wizard/l10n_be_coda_wizard.xml',
+        'views/l10n_be_coda_view.xml',
     ],
     'auto_install': False,
     'website': 'https://www.odoo.com/page/accounting',

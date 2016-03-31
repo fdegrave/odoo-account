@@ -1,9 +1,8 @@
 # -*- encoding: utf-8 -*-
 ##############################################################################
 #
-#    OpenERP, Open Source Management Solution
-#
-#    Copyright (c) 2012 Noviat nv/sa (www.noviat.be). All rights reserved.
+#    UNamur - University of Namur, Belgium (www.unamur.be)
+#    Noviat nv/sa (www.noviat.be)
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU Affero General Public License as
@@ -19,10 +18,9 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-import base64
 import time
 
-from openerp import api, models, fields, _
+from openerp import api, models, _
 from openerp.exceptions import ValidationError
 from openerp import tools
 from openerp.addons.base.res.res_bank import sanitize_account_number
@@ -62,8 +60,8 @@ class CodaImport(models.TransientModel):
                                     'contact your bank') % statement['version'])
         statement['globalisation_stack'] = []
         statement['lines'] = []
-        statement['date'] = time.strftime(
-            tools.DEFAULT_SERVER_DATE_FORMAT, time.strptime(rmspaces(line[5:11]), '%d%m%y'))
+        statement['date'] = time.strftime(tools.DEFAULT_SERVER_DATE_FORMAT,
+                                          time.strptime(rmspaces(line[5:11]), '%d%m%y'))
         statement['separateApplication'] = rmspaces(line[83:88])
 
     def _parse_line_1(self, line, statement):
@@ -98,74 +96,91 @@ class CodaImport(models.TransientModel):
 
     def _parse_line_2(self, line, statement):
         if line[1] == '1':
-            # New statement line
-            statementLine = {}
-            statementLine['ref'] = rmspaces(line[2:10])
-            statementLine['ref_move'] = rmspaces(line[2:6])
-            statementLine['ref_move_detail'] = rmspaces(line[6:10])
-            statementLine['sequence'] = len(statement['lines']) + 1
-            statementLine['transactionRef'] = rmspaces(line[10:31])
-            statementLine['debit'] = line[31]  # 0 = Credit, 1 = Debit
-            statementLine['amount'] = float(rmspaces(line[32:47])) / 1000
-            if statementLine['debit'] == '1':
-                statementLine['amount'] = - statementLine['amount']
-            statementLine['transactionDate'] = time.strftime(tools.DEFAULT_SERVER_DATE_FORMAT,
-                                                             time.strptime(rmspaces(line[47:53]), '%d%m%y'))
-            statementLine['transaction_family'] = rmspaces(line[54:56])
-            statementLine['transaction_code'] = rmspaces(line[56:58])
-            statementLine['transaction_category'] = rmspaces(line[58:61])
-            if line[61] == '1':
-                # Structured communication
-                statementLine['communication_struct'] = True
-                statementLine['communication_type'] = line[62:65]
-                statementLine['communication'] = (
-                    '+++' + line[65:68] + '/' + line[68:72] + '/' + line[72:77] + '+++')
-            else:
-                # Non-structured communication
-                statementLine['communication_struct'] = False
-                statementLine['communication'] = rmspaces(line[62:115])
-            statementLine['entryDate'] = time.strftime(
-                tools.DEFAULT_SERVER_DATE_FORMAT, time.strptime(rmspaces(line[115:121]), '%d%m%y'))
-            statementLine['type'] = 'normal'
-            statementLine['globalisation'] = int(line[124])
-            if statementLine['globalisation'] > 0:
-                if statementLine['globalisation'] in statement['globalisation_stack']:
-                    statement['globalisation_stack'].remove(statementLine['globalisation'])
-                else:
-                    statementLine['type'] = 'globalisation'
-                    statement['globalisation_stack'].append(statementLine['globalisation'])
-                self.global_comm[statementLine['ref_move']] = statementLine['communication']
-            if not statementLine.get('communication'):
-                statementLine['communication'] = self.global_comm.get(statementLine['ref_move'], '')
-            statement['lines'].append(statementLine)
+            self._parse_line_21(line, statement)
         elif line[1] == '2':
-            if statement['lines'][-1]['ref'][0:4] != line[2:6]:
-                raise ValidationError(_('CODA parsing error on movement data record 2.2, seq nr %s! '
-                                        'Please report this issue via your Odoo support channel.') % line[2:10])
-            statement['lines'][-1]['communication'] += rmspaces(line[10:63])
-            statement['lines'][-1]['payment_reference'] = rmspaces(line[63:98])
-            statement['lines'][-1]['counterparty_bic'] = rmspaces(line[98:109])
+            self._parse_line_22(line, statement)
         elif line[1] == '3':
-            if statement['lines'][-1]['ref'][0:4] != line[2:6]:
-                raise ValidationError(_('CODA parsing error on movement data record 2.3, seq nr %s!'
-                                        'Please report this issue via your Odoo support channel.') % line[2:10])
-            if statement['version'] == '1':
-                statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
-                statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:73])
-                statement['lines'][-1]['counterpartyAddress'] = rmspaces(line[73:125])
-                statement['lines'][-1]['counterpartyCurrency'] = ''
-            else:
-                if line[22] == ' ':
-                    statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
-                    statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[23:26])
-                else:
-                    statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:44])
-                    statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[44:47])
-                statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:82])
-                statement['lines'][-1]['communication'] += rmspaces(line[82:125])
+            self._parse_line_23(line, statement)
         else:
             # movement data record 2.x (x != 1,2,3)
             raise ValidationError(_('Movement data records of type 2.%s are not supported') % line[1])
+
+    def _parse_line_21(self, line, statement):
+        # New statement line
+        st_line = {}
+        prev_line = False
+        st_line['ref'] = rmspaces(line[2:10])
+        st_line['ref_move'] = rmspaces(line[2:6])
+        st_line['ref_move_detail'] = rmspaces(line[6:10])
+        if int(line[6:10]) > 0:
+            prev_line = statement['lines'][-1]
+        st_line['sequence'] = len(statement['lines']) + 1
+        st_line['transactionRef'] = rmspaces(line[10:31])
+        st_line['debit'] = line[31]  # 0 = Credit, 1 = Debit
+        st_line['amount'] = float(rmspaces(line[32:47])) / 1000
+        if st_line['debit'] == '1':
+            st_line['amount'] = - st_line['amount']
+        st_line['transactionDate'] = time.strftime(tools.DEFAULT_SERVER_DATE_FORMAT,
+                                                   time.strptime(rmspaces(line[47:53]), '%d%m%y'))
+        st_line['transaction_family'] = rmspaces(line[54:56])
+        st_line['transaction_code'] = rmspaces(line[56:58])
+        st_line['transaction_category'] = rmspaces(line[58:61])
+        if line[61] == '1':
+            # Structured communication
+            st_line['communication_struct'] = True
+            st_line['communication_type'] = line[62:65]
+            st_line['communication'] = ('+++' + line[65:68] + '/' + line[68:72] + '/' + line[72:77] + '+++')
+        else:
+            # Non-structured communication
+            st_line['communication_struct'] = False
+            st_line['communication'] = rmspaces(line[62:115])
+
+        if not(st_line['communication']) and prev_line:
+            st_line['communication'] = prev_line['communication']
+            if st_line['communication_struct'] and not(st_line.get('communication_type')):
+                st_line['communication_type'] = prev_line['communication_type']
+
+        st_line['entryDate'] = time.strftime(
+            tools.DEFAULT_SERVER_DATE_FORMAT, time.strptime(rmspaces(line[115:121]), '%d%m%y'))
+        st_line['type'] = 'normal'
+        st_line['globalisation'] = int(line[124])
+        if st_line['globalisation'] > 0:
+            if st_line['globalisation'] in statement['globalisation_stack']:
+                statement['globalisation_stack'].remove(st_line['globalisation'])
+            else:
+                st_line['type'] = 'globalisation'
+                statement['globalisation_stack'].append(st_line['globalisation'])
+            self.global_comm[st_line['ref_move']] = st_line['communication']
+        if not st_line.get('communication'):
+            st_line['communication'] = self.global_comm.get(st_line['ref_move'], '')
+        statement['lines'].append(st_line)
+
+    def _parse_line_22(self, line, statement):
+        if statement['lines'][-1]['ref'][0:4] != line[2:6]:
+            raise ValidationError(_('CODA parsing error on movement data record 2.2, seq nr %s! '
+                                    'Please report this issue via your Odoo support channel.') % line[2:10])
+        statement['lines'][-1]['communication'] += rmspaces(line[10:63])
+        statement['lines'][-1]['payment_reference'] = rmspaces(line[63:98])
+        statement['lines'][-1]['counterparty_bic'] = rmspaces(line[98:109])
+
+    def _parse_line_23(self, line, statement):
+        if statement['lines'][-1]['ref'][0:4] != line[2:6]:
+            raise ValidationError(_('CODA parsing error on movement data record 2.3, seq nr %s!'
+                                    'Please report this issue via your Odoo support channel.') % line[2:10])
+        if statement['version'] == '1':
+            statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
+            statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:73])
+            statement['lines'][-1]['counterpartyAddress'] = rmspaces(line[73:125])
+            statement['lines'][-1]['counterpartyCurrency'] = ''
+        else:
+            if line[22] == ' ':
+                statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:22])
+                statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[23:26])
+            else:
+                statement['lines'][-1]['counterpartyNumber'] = sanitize_account_number(line[10:44])
+                statement['lines'][-1]['counterpartyCurrency'] = rmspaces(line[44:47])
+            statement['lines'][-1]['counterpartyName'] = rmspaces(line[47:82])
+            statement['lines'][-1]['communication'] += rmspaces(line[82:125])
 
     def _parse_line_3(self, line, statement):
         if line[1] == '1':
@@ -238,19 +253,19 @@ class CodaImport(models.TransientModel):
                 structured_com = False
                 if line['communication_struct'] and line.get('communication_type') == '101':
                     structured_com = line['communication']
-                if line.get('communication'):
-                    note.append(_('Communication') + ': ' + line['communication'])
-                if line.get('counterpartyNumber'):
-                    note.append(_('Counter Party Account') + ': ' + line['counterpartyNumber'])
-                    transaction['account_number'] = line['counterpartyNumber']
                 if line.get('counterpartyName'):
                     note.append(_('Counter Party') + ': ' + line['counterpartyName'])
                     transaction['partner_name'] = line['counterpartyName']
+                if line.get('counterpartyNumber'):
+                    note.append(_('Counter Party Account') + ': ' + line['counterpartyNumber'])
+                    transaction['account_number'] = line['counterpartyNumber']
+                if line.get('communication'):
+                    note.append(_('Communication') + ': ' + line['communication'])
                 transaction.update({
                     'name': structured_com or (line.get('communication', '') != '' and line['communication'] or '/'),
                     'date': line['entryDate'],
                     'amount': line['amount'],
-                    'unique_import_id': str(line['sequence']),
+                    'unique_import_id': line['ref'],
                     'note': "\n".join(note),
                     'ref': line['ref'],
                 })
@@ -273,29 +288,6 @@ class CodaImport(models.TransientModel):
             if coda_st.get('acc_number') and not(account_number):
                 account_number = coda_st['acc_number']
             coda_st['coda_note'] = ''
-#             balance_start_check_date = ((len(coda_st['lines']) > 0 and coda_st['lines'][0]['entryDate']) or
-#                                         coda_st['date'])
-#             self._cr.execute('''SELECT balance_end_real
-#                                 FROM account_bank_statement
-#                                 WHERE journal_id = %s and date <= %s
-#                                 ORDER BY date DESC,id DESC LIMIT 1''', (coda_st['journal_id'].id,
-#                                                                         balance_start_check_date))
-#             bal = self._cr.fetchone()
-#             balance_start_check = bal and bal[0]
-#             if balance_start_check is None:
-#                 journal = coda_st['journal_id']
-#                 if (journal.default_debit_account_id and
-#                         (journal.default_credit_account_id == journal.default_debit_account_id)):
-#                     balance_start_check = journal.default_debit_account_id.balance
-#                 else:
-#                     raise ValidationError(_('Configuration Error in journal %s!\nPlease verify the '
-#                                             'Default Debit and Credit Account settings.') % journal.name)
-#             if balance_start_check != coda_st['balance_start']:
-#                 coda_st['coda_note'] = (_("The CODA Statement %s Starting Balance (%.2f) does not correspond with "
-#                                           "the previous Closing Balance (%.2f) in journal %s!") %
-#                                         (coda_st['description'] + ' #' + coda_st['paperSeqNumber'],
-#                                          coda_st['balance_start'], balance_start_check,
-#                                          coda_st['journal_id'].name))
             if not(coda_st.get('date')):
                 raise ValidationError(_(' No transactions or no period in coda file !'))
             statements.append({
@@ -305,12 +297,24 @@ class CodaImport(models.TransientModel):
                 'balance_end_real': coda_st['balance_end_real'],
                 'transactions': self._get_transactions(coda_st),
             })
-        print (currency_code, account_number, statements)
         return (currency_code, account_number, statements)
 
 
 class AccountBankStatementImport(models.TransientModel):
     _inherit = 'account.bank.statement.import'
+
+    def _is_coda(self, data_file):
+        """Test if `datafile` contains a CODA file"""
+        try:
+            for line in filter(None, data_file.split('\n')):
+                if line[0] == '0':
+                    st = {}
+                    self.env['account.coda.import']._parse_line_0(line, st)
+                    return st.get('version') in ['1', '2']
+                else:
+                    return False
+        except:
+            return False
 
     def _parse_file(self, data_file):
         """ Each module adding a file support must extends this method. It processes the file if it can, returns super otherwise, resulting in a chain of responsability.
@@ -338,6 +342,6 @@ class AccountBankStatementImport(models.TransientModel):
 
         The journal to use is deducted from the bank account for which we import the statements
         """
-        print "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr"
-        return self.env['account.coda.import'].coda_parsing(data_file)
+        if self._is_coda(data_file):
+            return self.env['account.coda.import'].coda_parsing(data_file)
         return super(AccountBankStatementImport, self)._parse_file(data_file)
