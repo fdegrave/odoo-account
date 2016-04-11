@@ -20,7 +20,7 @@
 ##############################################################################
 import time
 
-from openerp import api, models, _
+from openerp import models, _
 from openerp.exceptions import ValidationError
 from openerp import tools
 from openerp.addons.base.res.res_bank import sanitize_account_number
@@ -34,9 +34,7 @@ def rmspaces(s):
     return " ".join(s.split())
 
 
-class CodaImport(models.TransientModel):
-    _name = 'account.coda.import'
-    _description = 'Import CODA File'
+class CodaImport:
 
     def _parse_line(self, line, statements):
         if not line:
@@ -272,7 +270,6 @@ class CodaImport(models.TransientModel):
                 transactions.append(transaction)
         return transactions
 
-    @api.model
     def coda_parsing(self, coda_file):
         recordlist = coda_file.split('\n')
         coda_statements = []
@@ -309,7 +306,7 @@ class AccountBankStatementImport(models.TransientModel):
             for line in filter(None, data_file.split('\n')):
                 if line[0] == '0':
                     st = {}
-                    self.env['account.coda.import']._parse_line_0(line, st)
+                    CodaImport()._parse_line_0(line, st)
                     return st.get('version') in ['1', '2']
                 else:
                     return False
@@ -317,8 +314,10 @@ class AccountBankStatementImport(models.TransientModel):
             return False
 
     def _parse_file(self, data_file):
-        """ Each module adding a file support must extends this method. It processes the file if it can, returns super otherwise, resulting in a chain of responsability.
-            This method parses the given file and returns the data required by the bank statement import process, as specified below.
+        """ Each module adding a file support must extends this method. It processes the file if it can, returns super
+            otherwise, resulting in a chain of responsability.
+            This method parses the given file and returns the data required by the bank statement import process,
+            as specified below.
             rtype: triplet (if a value can't be retrieved, use None)
                 - currency code: string (e.g: 'EUR')
                     The ISO 4217 currency code, case insensitive
@@ -343,5 +342,5 @@ class AccountBankStatementImport(models.TransientModel):
         The journal to use is deducted from the bank account for which we import the statements
         """
         if self._is_coda(data_file):
-            return self.env['account.coda.import'].coda_parsing(data_file)
+            return CodaImport().coda_parsing(data_file)
         return super(AccountBankStatementImport, self)._parse_file(data_file)

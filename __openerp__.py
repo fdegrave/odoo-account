@@ -36,32 +36,13 @@ Supported are CODA flat files in V2 format from Belgian bank accounts.
     * Support for all data record types (0, 1, 2, 3, 4, 8, 9).
     * Parsing & logging of all Transaction Codes and Structured Format
       Communications.
-    * Automatic Financial Journal assignment via CODA configuration parameters.
     * Support for multiple Journals per Bank Account Number.
     * Support for multiple statements from different bank accounts in a single
       CODA file.
-    * Support for 'parsing only' CODA Bank Accounts (defined as type='info' in
-      the CODA Bank Account configuration records).
-    * Multi-language CODA parsing, parsing configuration data provided for EN,
-      NL, FR.
 
-The machine readable CODA Files are parsed and stored in human readable format in
-CODA Bank Statements. Also Bank Statements are generated containing a subset of
+The machine readable CODA Files are parsed and Bank Statements are generated containing a subset of
 the CODA information (only those transaction lines that are required for the
-creation of the Financial Accounting records). The CODA Bank Statement is a
-'read-only' object, hence remaining a reliable representation of the original
-CODA file whereas the Bank Statement will get modified as required by accounting
-business processes.
-
-CODA Bank Accounts configured as type 'Info' will only generate CODA Bank Statements.
-
-A removal of one object in the CODA processing results in the removal of the
-associated objects. The removal of a CODA File containing multiple Bank
-Statements will also remove those associated statements.
-
-Instead of a manual adjustment of the generated Bank Statements, you can also
-re-import the CODA after updating the OpenERP database with the information that
-was missing to allow automatic reconciliation.
+creation of the Financial Accounting records).
 
 Remark on CODA V1 support:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,7 +52,7 @@ description provided by the CODA configuration tables is based upon the CODA
 V2.2 specifications.
 If required, you can manually adjust the descriptions via the CODA configuration menu.
 ''',
-    'depends': ['l10n_be_invoice_bba'],
+    'depends': ['account_accountant', 'account_bank_statement_import', 'l10n_be'],
     'demo': [
     ],
     'data': [
