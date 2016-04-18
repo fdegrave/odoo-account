@@ -1,0 +1,93 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Document xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>{{ reference }}</MsgId>
+      <CreDtTm>{{ time.strftime('%Y-%m-%dT%H:%M:%S') }}</CreDtTm>
+      <NbOfTxs>{{ str(len(payments)) }}</NbOfTxs>
+      <CtrlSum>{{ '%.2f' % amount_total }}</CtrlSum>
+      <InitgPty>
+        <Nm>{{ company.name }}</Nm>
+        <Id>
+          <OrgId>
+            <Othr>
+              <Id>{{ company_vat }}</Id>
+              <Issr>KBO-BCE</Issr>
+            </Othr>
+          </OrgId>
+        </Id>
+      </InitgPty>
+    </GrpHdr>
+{#-------------
+  Payment lines
+ --------------#}
+    {% for payment in payments %}
+    <PmtInf>
+      <PmtInfId>{{ payment.name }}</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <BtchBookg>false</BtchBookg>
+      <PmtTpInf>
+        <InstrPrty>NORM</InstrPrty>
+        <SvcLvl>
+          <Cd>SEPA</Cd>
+        </SvcLvl>
+      </PmtTpInf>
+      <ReqdExctnDt>{{ execution_date(line) }}</ReqdExctnDt>
+      <Dbtr>
+        <Nm>{{ company.name }}</Nm>
+      </Dbtr>
+      <DbtrAcct>
+        <Id>
+          <IBAN>{{ format_iban(payment.journal_id.bank_acc_number) }}</IBAN>
+        </Id>
+      </DbtrAcct>
+      <DbtrAgt>
+        <FinInstnId>
+          <BIC>{{ payment.journal_id.bank_id.bic }}</BIC>
+        </FinInstnId>
+      </DbtrAgt>
+      <ChrgBr>SLEV</ChrgBr>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>{{ payment.name }}</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">{{ '%.2f' % payment.amount }}</InstdAmt>
+        </Amt>
+        <CdtrAgt>
+          <FinInstnId>
+            <BIC>{{ payment.partner_bank_id.bank_id.bic }}</BIC>
+          </FinInstnId>
+        </CdtrAgt>
+        <Cdtr>
+          <Nm>{{ payment.partner_id.name }}</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>{{ format_iban(payment.partner_bank_id.acc_number) }}</IBAN>
+          </Id>
+        </CdtrAcct>
+        <RmtInf>
+          {% if payment.state is equalto 'normal' %}
+            <Ustrd>{{ line.communication }}{% if line.communication2 %} {{ line.communication2 }}{% endif %}</Ustrd>
+          {% elif payment.state is equalto 'structured' %}
+			<Strd>
+			  <CdtrRefInf>
+			    <Tp>
+			      <CdOrPrtry>
+			        <Cd>SCOR</Cd>
+			      </CdOrPrtry>
+			      <Issr>BBA</Issr>
+			    </Tp>
+			    <Ref>{{ format_comm(payment.communication) }}</Ref>
+			  </CdtrRefInf>
+			</Strd>
+          {% else %}
+            {{ raise_error("Only the Belgian Structured Communication format (BBA) is supported in the current release") }}
+		  {% endif %}
+        </RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+    {% endfor %}
+  </CstmrCdtTrfInitn>
+</Document>

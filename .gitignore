@@ -1,9 +1,5 @@
-.project
-.pydevproject
-.settings
-*.pyc
-.settings
 .*
+*.pyc
 *~
 *.mo
 
