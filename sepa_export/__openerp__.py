@@ -10,6 +10,6 @@
     'data': [
         'views/sepa_file.xml',
     ],
-    'installable': True,
+    'installable': False,  # not functional yet
     'auto_install': False,
 }
