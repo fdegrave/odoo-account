@@ -3,8 +3,8 @@
   <CstmrCdtTrfInitn>
     <GrpHdr>
       <MsgId>{{ reference }}</MsgId>
-      <CreDtTm>{{ time.strftime('%Y-%m-%dT%H:%M:%S') }}</CreDtTm>
-      <NbOfTxs>{{ str(len(payments)) }}</NbOfTxs>
+      <CreDtTm>{{ now }}</CreDtTm>
+      <NbOfTxs>{{ pay_nbr }}</NbOfTxs>
       <CtrlSum>{{ '%.2f' % amount_total }}</CtrlSum>
       <InitgPty>
         <Nm>{{ company.name }}</Nm>
@@ -32,7 +32,7 @@
           <Cd>SEPA</Cd>
         </SvcLvl>
       </PmtTpInf>
-      <ReqdExctnDt>{{ execution_date(line) }}</ReqdExctnDt>
+      <ReqdExctnDt>{{ payment.payment_date }}</ReqdExctnDt>
       <Dbtr>
         <Nm>{{ company.name }}</Nm>
       </Dbtr>
@@ -64,13 +64,13 @@
         </Cdtr>
         <CdtrAcct>
           <Id>
-            <IBAN>{{ format_iban(payment.partner_bank_id.acc_number) }}</IBAN>
+            <IBAN>{{ payment.partner_bank_id.sanitized_acc_number }}</IBAN>
           </Id>
         </CdtrAcct>
         <RmtInf>
-          {% if payment.state is equalto 'normal' %}
-            <Ustrd>{{ line.communication }}{% if line.communication2 %} {{ line.communication2 }}{% endif %}</Ustrd>
-          {% elif payment.state is equalto 'structured' %}
+          {% if payment.communication_type == 'none' %}
+            <Ustrd>{{ payment.communication }}</Ustrd>
+          {% elif payment.communication_type == 'bba' %}
 			<Strd>
 			  <CdtrRefInf>
 			    <Tp>

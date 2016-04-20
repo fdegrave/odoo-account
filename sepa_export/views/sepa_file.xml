@@ -7,7 +7,7 @@
         <field name="type">search</field>
         <field name="arch" type="xml"> 
             <search>
-                <field name="reference"/>
+                <field name="name"/>
             </search>
         </field>
     </record>
@@ -19,7 +19,7 @@
         <field name="priority">10</field>
         <field name="arch" type="xml"> 
             <tree string="SEPA Files">
-                <field name="reference"/>
+                <field name="name"/>
                 <field name="date"/>
             </tree>
         </field>
@@ -33,7 +33,7 @@
         <field name="arch" type="xml">
             <form string="SEPA File">
 	            <group>
-	                <field name="reference"/>
+	                <field name="name"/>
 	                <field name="date"/>
 	                <field name="xml_file"/>  
 	             </group>
@@ -49,7 +49,7 @@
     =======================
     --> 
     
-    <record model="ir.actions.act_window" id="sepa_files_action">
+    <record model="ir.actions.act_window" id="sepa_file_action">
         <field name="name">SEPA Files</field>
         <field name="res_model">account.sepa_file</field>
         <field name="view_type">form</field>
@@ -57,6 +57,6 @@
     </record>
           
     <menuitem id="sepa_files_menu" name="SEPA Files" parent="account.menu_finance_payables" 
-              action="sepa_files_action" sequence="30"/>
+              action="sepa_file_action" sequence="30"/>
     
 </odoo>

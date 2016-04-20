@@ -1,44 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <record model="ir.ui.view" id="sepa_file_search">
-        <field name="name">sepa_file_search</field>
-        <field name="model">account.sepa_file</field>
-        <field name="type">search</field>
-        <field name="arch" type="xml"> 
-            <search>
-                <field name="reference"/>
-            </search>
-        </field>
-    </record>
-
-    <record model="ir.ui.view" id="sepa_file_tree">
-        <field name="name">sepa_file_tree</field>
-        <field name="model">account.sepa_file</field>
-        <field name="type">tree</field>
-        <field name="priority">10</field>
-        <field name="arch" type="xml"> 
-            <tree string="SEPA Files">
-                <field name="reference"/>
-                <field name="date"/>
-            </tree>
-        </field>
-    </record>
-    
-    <record model="ir.ui.view" id="sepa_file_form">
-        <field name="name">sepa_file_form</field>
-        <field name="model">account.sepa_file</field>
+    <record model="ir.ui.view" id="export_sepa_wiz_form">
+        <field name="name">export_sepa_wiz_form</field>
+        <field name="model">account.export_sepa_wiz</field>
         <field name="type">form</field>
-        <field name="priority">10</field>
         <field name="arch" type="xml">
-            <form string="SEPA File">
-             <group>
-                 <field name="reference"/>
-                 <field name="date"/>
-                 <field name="xml_file"/>  
-             </group>
-             <separator string="Payments" colspan="4"/>
-                <field name="payment_ids" colspan="4"/>  
+            <form string="Confirm Draft Invoices">
+                <p class="oe_grey">
+                    Only the outbound and internal payments with a status "Posted" will be exported. One SEPA file will 
+                    be created for each journal under concern.                    
+                </p>
+                <footer>
+                    <button string="Export SEPA Files" name="export_sepa" type="object" 
+                            default_focus="1" class="btn-primary"/>
+                    <button string="Cancel" class="btn-default" special="cancel"/>
+                </footer>
             </form>
         </field>
     </record>
@@ -48,15 +24,10 @@
         MENUS & ACTIONS
     =======================
     --> 
-    
-    <record model="ir.actions.act_window" id="sepa_files_action">
-        <field name="name">SEPA Files</field>
-        <field name="res_model">account.sepa_file</field>
-        <field name="view_type">form</field>
-        <field name="view_mode">tree,form</field>
-    </record>
-          
-    <menuitem id="sepa_files_menu" name="SEPA Files" parent="account.menu_finance_payables" 
-              action="sepa_files_action" sequence="30"/>
+
+    <act_window id="action_export_sepa"
+        key2="client_action_multi" name="Export To SEPA"
+        res_model="account.export_sepa_wiz" src_model="account.payment"
+        view_mode="form" target="new" view_type="form" />
     
 </odoo>

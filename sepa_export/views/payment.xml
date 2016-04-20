@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+	<record id="sepa_account_payment_form" model="ir.ui.view">
+		<field name="name">sepa_account_payment_form</field>
+		<field name="model">account.payment</field>
+        <field name="inherit_id" ref="account.view_account_payment_form"/>
+		<field name="arch" type="xml">
+            <xpath expr="//div[@name='amount_div']" position="after">
+                <field name="partner_bank_id" 
+                       attrs="{'invisible': [('payment_method_code', '!=', 'SEPA')], 
+                               'readonly': [('state', '!=', 'draft')]}"
+                       context="{'default_partner_id': partner_id}"/>
+            </xpath>
+            <xpath expr="//field[@name='communication']" position="after">
+                <field name="sepa_file_id" attrs="{'invisible': [('sepa_file_id', '=', False)]}"/>
+            </xpath>
+            <xpath expr="//field[@name='communication']" position="replace">
+                <field name="communication_type" nolabel="1" attrs="{'readonly': [('state', '!=', 'draft')]}"/>
+                <field name="communication" nolabel="1"
+                       attrs="{'invisible': [('state', '!=', 'draft'), ('communication', '=', False)], 
+                               'readonly': [('state', '!=', 'draft')], 
+                               'required': [('communication_type', '=', 'bba')]}"/>
+            </xpath>
+		</field>
+	</record>
+    
+</odoo>

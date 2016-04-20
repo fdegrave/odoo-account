@@ -23,15 +23,15 @@ import jinja2
 import logging
 import base64
 from os import path
-import re
-import sys
 import time
 import operator
 from itertools import groupby
+from lxml import etree
+import StringIO
 from openerp.addons.base.res.res_bank import sanitize_account_number
 
 
-from openerp import models, fields, exceptions
+from openerp import models, fields, exceptions, api
 from openerp.tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -41,17 +41,20 @@ class ExportSEPAWiz(models.TransientModel):
     """Wizard to export outbound payments (type 'account.payment') into a SEPA file
 
     The payments are those identified by the 'active_ids' key of the context; only the payments with a payment type
-    "outbound" in state "posted" are exported. The generated file is added 
+    "outbound" in state "posted" are exported. The generated file is added
     """
     _name = 'account.export_sepa_wiz'
 
-#     def _validate_file(self, file):
-#         # validate the generated XML schema
-#         xsd = tools.file_open('account_pain/xsd/pain.001.001.03.xsd')
-#         xmlschema_doc = etree.parse(xsd)
-#         xmlschema = etree.XMLSchema(xmlschema_doc)
-#         xml_to_validate = StringIO(pain_data)
-#         parse_result = etree.parse(xml_to_validate)
+    def _validate_file(self, xml_data):
+        # validate the generated XML schema
+        xsd_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'data', 'pain.001.001.03.xsd'))
+        with open(xsd_path) as xsd_file:
+            schema_root = etree.parse(xsd_file)
+            schema = etree.XMLSchema(schema_root)
+            xml_data = etree.parse(StringIO.StringIO(xml_data))
+            if not(schema.validate(xml_data)):
+                raise exceptions.ValidationError(_("The generated SEPA file contains errors:\n %s") %
+                                                 '\n'.join([str(err) for err in schema.error_log]))
 
     def _get_sepa_id(self, payments):
         """Create the SEPA file main identifier
@@ -62,12 +65,12 @@ class ExportSEPAWiz(models.TransientModel):
             The payments are all in state "posted" and on the same journal
         """
         prefix = "%s/%s/" % (payments[0].journal_id.code, time.strftime('%Y%m%d'))
-        existing = self.env['account.sepa_file'].search_count([('code', '=like', prefix + '%')])
-        return "%s%03d" % (existing + 1)
+        existing = self.env['account.sepa_file'].search_count([('name', '=like', prefix + '%')])
+        return "%s%03d" % (prefix, existing + 1)
 
     def _render_template(self, **kwargs):
-        path = path.realpath(path.join(path.dirname(__file__), '..', 'report'))
-        loader = jinja2.FileSystemLoader(path)
+        xml_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'report'))
+        loader = jinja2.FileSystemLoader(xml_path)
         env = jinja2.Environment(loader=loader, autoescape=True)
         return env.get_template('sepa_template.xml').render(**kwargs)
 
@@ -75,10 +78,12 @@ class ExportSEPAWiz(models.TransientModel):
         """Ensure the partner bank account has a BIC code
         """
         for p in payments:
-            if not(p.partner_bank_id.bank_id.bic):
-                raise exceptions.ValidationError(_("The bank account %s (%s) has no BIC code") %
-                                                 (p.partner_bank_id.acc_number, p.name))
+            for bnk in [p.partner_bank_id.bank_id, p.journal_id.bank_id]:
+                if not(bnk.bic):
+                    raise exceptions.ValidationError(_("The bank account %s (%s) has no BIC code") %
+                                                     (bnk.acc_number, bnk.partner_id.name or _('No partner')))
 
+    @api.multi
     def export_sepa(self):
         """Export payments (given in 'active_ids') to SEPA files
 
@@ -87,10 +92,15 @@ class ExportSEPAWiz(models.TransientModel):
         """
         def sort_key(pay): return pay.journal_id
 
+        def format_comm(comm): return filter(str.isdigit, str(comm))
+
         def raise_error(msg): raise Exception(msg)
         pay_obj = self.env['account.payment']
         all_payments = pay_obj.browse(self._context['active_ids'])
-        all_payments = all_payments.filtered(lambda p: p.payment_type == "outbound" and p.state == 'posted')
+        all_payments = all_payments.filtered(lambda p: p.payment_type == "outbound" and p.state == 'posted' and
+                                             p.payment_method_code == "SEPA")
+        if not(all_payments):
+            raise exceptions.Warning(_("No SEPA payments to export"))
         self._ensure_bank_bic(all_payments)
 
         sepa_files = self.env['account.sepa_file']
@@ -98,13 +108,17 @@ class ExportSEPAWiz(models.TransientModel):
             payments = reduce(operator.add, payment_list, pay_obj.browse())
             amount_total = sum(payments.mapped(lambda p: p.amount))
             reference = self._get_sepa_id(payments)
-            time = time
+            now = time.strftime('%Y-%m-%dT%H:%M:%S')
             company = payments[0].company_id
-            company_vat = filter(str.isdigit, company.vat)
+            company_vat = filter(str.isdigit, str(company.vat) or '')
             format_iban = sanitize_account_number
-            sepa_data = base64.b64encode(self._render_template(**locals()))
+            pay_nbr = len(payments)
+            kwargs = locals().copy()
+            del kwargs['self']
+            sepa_data = self._render_template(**kwargs).encode('utf-8')
+            self._validate_file(sepa_data)
             sepa_files += sepa_files.create({'name': reference,
-                                             'xml_file': sepa_data,
+                                             'xml_file': base64.b64encode(sepa_data),
                                              'date': fields.Datetime.now(),
                                              'payment_ids': payments.mapped(lambda p: (4, p.id))})
             payments.write({'state': 'sent'})

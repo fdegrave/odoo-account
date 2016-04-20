@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="account_payment_method_sepa_out" model="account.payment.method">
+        <field name="name">SEPA</field>
+        <field name="code">SEPA</field>
+        <field name="payment_type">outbound</field>
+    </record>
+    
+</odoo>
