@@ -119,7 +119,6 @@ class ExportSEPAWiz(models.TransientModel):
             self._validate_file(sepa_data)
             sepa_files += sepa_files.create({'name': reference,
                                              'xml_file': base64.b64encode(sepa_data),
-                                             'date': fields.Datetime.now(),
                                              'payment_ids': payments.mapped(lambda p: (4, p.id))})
             payments.write({'state': 'sent'})
         return self.existing_action("sepa_export.sepa_file_action", domain="[('id', 'in', %s)]" % sepa_files.ids)

@@ -8,6 +8,7 @@
         <field name="arch" type="xml"> 
             <search>
                 <field name="name"/>
+                <field name="create_date"/>
             </search>
         </field>
     </record>
@@ -20,7 +21,7 @@
         <field name="arch" type="xml"> 
             <tree string="SEPA Files">
                 <field name="name"/>
-                <field name="date"/>
+                <field name="create_date"/>
             </tree>
         </field>
     </record>
@@ -34,7 +35,7 @@
             <form string="SEPA File">
 	            <group>
 	                <field name="name"/>
-	                <field name="date"/>
+	                <field name="create_date"/>
 	                <field name="xml_file" filename="xml_filename"/>  
                     <field name="xml_filename" invisible="1"/>
 	             </group>
