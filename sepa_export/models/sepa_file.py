@@ -27,9 +27,14 @@ _logger = logging.getLogger(__name__)
 class SEPAFile(models.Model):
     _name = 'account.sepa_file'
 
+    def _get_filename(self):
+        for sepafile in self:
+            sepafile.xml_filename = "%s.xml" % (''.join(c if c.isalnum() else '_' for c in self.name))
+
     name = fields.Char(string='Reference', size=35, readonly=True, required=True)
     date = fields.Datetime(string='Creation Date', readonly=True, required=True)
     xml_file = fields.Binary("File", attachment=True, help="The SEPA file", readonly=True)
+    xml_filename = fields.Char(string='File Name', readonly=True, compute="_get_filename")
     payment_ids = fields.One2many("account.payment", "sepa_file_id", "Activities", readonly=True)
 
     _order = "date desc"

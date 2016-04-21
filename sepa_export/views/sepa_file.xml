@@ -35,7 +35,8 @@
 	            <group>
 	                <field name="name"/>
 	                <field name="date"/>
-	                <field name="xml_file"/>  
+	                <field name="xml_file" filename="xml_filename"/>  
+                    <field name="xml_filename" invisible="1"/>
 	             </group>
 	             <separator string="Payments" colspan="4"/>
 	            <field name="payment_ids" colspan="4"/>  
