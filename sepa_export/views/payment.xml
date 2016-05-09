@@ -30,6 +30,12 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_invoice_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='payment_method_code']" position="after">
+                <field name="partner_bank_id" 
+                       attrs="{'invisible': [('payment_method_code', '!=', 'SEPA')],
+                               'required': [('payment_method_code', '=', 'SEPA')]}"
+                       context="{'default_partner_id': partner_id}"/>
+            </xpath>
             <xpath expr="//field[@name='communication']" position="replace">
                 <field name="communication_type" nolabel="1"/>
                 <field name="communication" nolabel="1" attrs="{'required': [('communication_type', '=', 'bba')]}"/>
@@ -42,6 +48,11 @@
         <field name="model">account.payment</field>
         <field name="inherit_id" ref="account.view_account_payment_from_invoices"/>
         <field name="arch" type="xml">
+            <xpath expr="//field[@name='payment_method_code']" position="after">
+                <field name="partner_bank_id" 
+                       attrs="{'invisible': [('payment_method_code', '!=', 'SEPA')]}"
+                       context="{'default_partner_id': partner_id}"/>
+            </xpath>
             <xpath expr="//field[@name='communication']" position="replace">
                 <field name="communication_type" nolabel="1"/>
                 <field name="communication" nolabel="1" attrs="{'required': [('communication_type', '=', 'bba')]}"/>

@@ -28,6 +28,7 @@ class SEPAFile(models.Model):
     _name = 'account.sepa_file'
 
     def _get_filename(self):
+        """The XML file name is a normalization of the SEPA file object name"""
         for sepafile in self:
             sepafile.xml_filename = "%s.xml" % (''.join(c if c.isalnum() else '_' for c in self.name))
 
