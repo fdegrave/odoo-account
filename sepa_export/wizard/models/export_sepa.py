@@ -84,66 +84,6 @@ class ExportSEPAWiz(models.TransientModel):
                     raise exceptions.ValidationError(_("The bank account %s (%s) has no BIC code") %
                                                      (bnk.acc_number, bnk.partner_id.name or _('No partner')))
 
-    @api.model
-    def wizard_action(self, view_ref, title, res_model, res_id=False, target="current", view_mode="form", domain="[]"):
-        """Returns a window action under the form of a dictionary
-
-        Attributes:
-            view_ref (str): absolute XML id of the action
-            title (str): title of the action
-            res_model (str): model of the records to display
-            res_id (int or bool): id of the record to display, or False
-            target (str): Target window of the action (current, parent, new)
-            view_mode (str): view mode to use
-            domain (str): domain to apply to the records (if tree/kanban/calendar... view)
-        """
-        res = {
-            'name': title,
-            'res_model': res_model,
-            'view_type': 'form',
-            'view_mode': view_mode,
-            'target': target,
-            'type': 'ir.actions.act_window',
-            'domain': domain,
-            'context': self._context or None
-        }
-        if res_id:
-            res['res_id'] = res_id
-        if view_ref:
-            if view_ref.isdigit():
-                res['view_id'] = [int(view_ref)]
-            else:
-                mod_obj = self.env['ir.model.data']
-                view = mod_obj.xmlid_to_object(view_ref)
-                if view:
-                    res['view_id'] = [view.id]
-        if isinstance(title, tuple):
-            title = title[0] if isinstance(title[0], (str, unicode)) else ""
-            res['name'] = title
-        return res
-
-    @api.model
-    def existing_action(self, action_ref, res_id=False, target="current", domain="[]", view_mode=None):
-        """Returns an existing action under the form of a dictionary
-
-        Attributes:
-            action_ref (str): absolute XML id of the action
-            res_id (int or bool): id of the record to display, or False
-            target (str): Target window of the action (current, parent, new)
-            domain (str): domain to apply to the records (if tree/kanban/calendar... view)
-            view_mode (str): view mode to use
-        """
-        action = self.env.ref(action_ref, raise_if_not_found=True)
-        view_ref = str(action.view_id.id) if action.view_id else False
-        if not view_mode:
-            view_mode = action.view_mode if action.view_mode else "form"
-        ctxt = eval(action.context or "{}", globals_dict={"context": self._context})
-        res = self.with_context(**ctxt).wizard_action(view_ref, action.name, action.res_model, res_id=res_id,
-                                                      target=target, view_mode=view_mode, domain=domain)
-        if action.view_ids:
-            res['views'] = [(v.view_id.id, v.view_mode) for v in action.view_ids]
-        return res
-
     @api.multi
     def export_sepa(self):
         """Export payments (given in 'active_ids') to SEPA files
@@ -182,4 +122,11 @@ class ExportSEPAWiz(models.TransientModel):
                                              'xml_file': base64.b64encode(sepa_data),
                                              'payment_ids': payments.mapped(lambda p: (4, p.id))})
             payments.write({'state': 'sent'})
-        return self.existing_action("sepa_export.sepa_file_action", domain="[('id', 'in', %s)]" % sepa_files.ids)
+        return {'context': self._context,
+                'domain': "[('id', 'in', %s)]" % sepa_files.ids,
+                'name': _('SEPA Files'),
+                'res_model': 'account.sepa_file',
+                'target': 'current',
+                'type': 'ir.actions.act_window',
+                'view_mode': 'tree,form',
+                'view_type': 'form'}
