@@ -29,6 +29,7 @@ from itertools import groupby
 from lxml import etree
 import StringIO
 from openerp.addons.base.res.res_bank import sanitize_account_number
+from openerp.tools.safe_eval import safe_eval as eval
 
 
 from openerp import models, fields, exceptions, api
@@ -82,6 +83,28 @@ class ExportSEPAWiz(models.TransientModel):
                 if not(bnk.bic):
                     raise exceptions.ValidationError(_("The bank account %s (%s) has no BIC code") %
                                                      (bnk.acc_number, bnk.partner_id.name or _('No partner')))
+
+    @api.model
+    def existing_action(self, action_ref, res_id=False, target="current", domain="[]", view_mode=None):
+        """Returns an existing action under the form of a dictionary
+
+        Attributes:
+            action_ref (str): absolute XML id of the action
+            res_id (int or bool): id of the record to display, or False
+            target (str): Target window of the action (current, parent, new)
+            domain (str): domain to apply to the records (if tree/kanban/calendar... view)
+            view_mode (str): view mode to use
+        """
+        action = self.env.ref(action_ref, raise_if_not_found=True)
+        view_ref = str(action.view_id.id) if action.view_id else False
+        if not view_mode:
+            view_mode = action.view_mode if action.view_mode else "form"
+        ctxt = eval(action.context or "{}", globals_dict={"context": self._context})
+        res = self.with_context(**ctxt).wizard_action(view_ref, action.name, action.res_model, res_id=res_id,
+                                                      target=target, view_mode=view_mode, domain=domain)
+        if action.view_ids:
+            res['views'] = [(v.view_id.id, v.view_mode) for v in action.view_ids]
+        return res
 
     @api.multi
     def export_sepa(self):
