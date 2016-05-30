@@ -85,6 +85,44 @@ class ExportSEPAWiz(models.TransientModel):
                                                      (bnk.acc_number, bnk.partner_id.name or _('No partner')))
 
     @api.model
+    def wizard_action(self, view_ref, title, res_model, res_id=False, target="current", view_mode="form", domain="[]"):
+        """Returns a window action under the form of a dictionary
+
+        Attributes:
+            view_ref (str): absolute XML id of the action
+            title (str): title of the action
+            res_model (str): model of the records to display
+            res_id (int or bool): id of the record to display, or False
+            target (str): Target window of the action (current, parent, new)
+            view_mode (str): view mode to use
+            domain (str): domain to apply to the records (if tree/kanban/calendar... view)
+        """
+        res = {
+            'name': title,
+            'res_model': res_model,
+            'view_type': 'form',
+            'view_mode': view_mode,
+            'target': target,
+            'type': 'ir.actions.act_window',
+            'domain': domain,
+            'context': self._context or None
+        }
+        if res_id:
+            res['res_id'] = res_id
+        if view_ref:
+            if view_ref.isdigit():
+                res['view_id'] = [int(view_ref)]
+            else:
+                mod_obj = self.env['ir.model.data']
+                view = mod_obj.xmlid_to_object(view_ref)
+                if view:
+                    res['view_id'] = [view.id]
+        if isinstance(title, tuple):
+            title = title[0] if isinstance(title[0], (str, unicode)) else ""
+            res['name'] = title
+        return res
+
+    @api.model
     def existing_action(self, action_ref, res_id=False, target="current", domain="[]", view_mode=None):
         """Returns an existing action under the form of a dictionary
 
