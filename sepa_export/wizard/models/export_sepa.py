@@ -29,9 +29,6 @@ from itertools import groupby
 from lxml import etree
 import StringIO
 from openerp.addons.base.res.res_bank import sanitize_account_number
-from openerp.tools.safe_eval import safe_eval as eval
-
-
 from openerp import models, fields, exceptions, api
 from openerp.tools.translate import _
 

@@ -21,6 +21,7 @@
 from openerp import models, fields, api, exceptions
 from openerp.tools.translate import _
 import logging
+import re
 
 _logger = logging.getLogger(__name__)
 
@@ -46,6 +47,36 @@ class AccountPayment(models.Model):
         for payment in self:
             if payment.payment_method_code == "SEPA" and not(payment.partner_bank_id):
                 raise exceptions.ValidationError(_("The partner bank account is mandatory when using the SEPA method"))
+
+    def _check_bba_comm(self):
+        """Checks if the bba communication of `self` is well-formed"""
+        def test_bba(val):
+            supported_chars = '0-9+*/ '
+            pattern = re.compile('[^' + supported_chars + ']')
+            if pattern.findall(val or ''):
+                return False
+            bbacomm = re.sub('\D', '', val or '')
+            if len(bbacomm) == 12:
+                base = int(bbacomm[:10])
+                mod = base % 97 or 97
+                if mod == int(bbacomm[-2:]):
+                    return True
+            return False
+        self.ensure_one()
+        if not(test_bba(self.communication)):
+            raise exceptions.ValidationError(_("BBA communication '%s' is invalid") % self.communication)
+
+    @api.one
+    @api.constrains('state', 'communication_type', 'payment_method_id')
+    def _check_structured_comm(self):
+        """Checks if the structured communication is well-formed when the payment is validated
+
+        This method can check other communication types than 'bba' by simply extending the class with a
+        '_check_[communication_type]_comm' method
+        """
+        payments = self.filtered(lambda p: p.state != 'draft')
+        for payment in payments:
+            getattr(self, "_check_%s_comm" % payment.communication_type, lambda *a: True)()
 
 
 class Journal(models.Model):
