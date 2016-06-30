@@ -67,10 +67,10 @@ class ExportSEPAWiz(models.TransientModel):
         return "%s%03d" % (prefix, existing + 1)
 
     def _render_template(self, **kwargs):
-        xml_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'report'))
+        xml_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'templates'))
         loader = jinja2.FileSystemLoader(xml_path)
         env = jinja2.Environment(loader=loader, autoescape=True)
-        return env.get_template('sepa_template.xml').render(**kwargs)
+        return env.get_template('sepa_001.001.03.xml').render(**kwargs)
 
     def _ensure_bank_bic(self, payments):
         """Ensure the partner bank account has a BIC code

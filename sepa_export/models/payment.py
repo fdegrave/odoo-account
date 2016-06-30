@@ -26,6 +26,25 @@ import re
 _logger = logging.getLogger(__name__)
 
 
+class AccountRegisterPayments(models.TransientModel):
+    _inherit = "account.register.payments"
+
+    partner_bank_id = fields.Many2one('res.partner.bank', string="Partner Bank Account",
+                                      domain="[('id','=',-1)")
+    communication_type = fields.Selection([('none', 'Free Communication'), ('bba', 'BBA Structured Communication')],
+                                          required=True, default='none', string="Communication Type")
+
+    @api.onchange('partner_id')
+    def _onchange_partner(self):
+        return {'domain': {'partner_bank_id': [('partner_id', '=', self.partner_id.id or -1)]}}
+
+    def get_payment_vals(self):
+        res = super(AccountRegisterPayments, self).get_payment_vals()
+        res['partner_bank_id'] = self.partner_bank_id.id
+        res['communication_type'] = self.communication_type
+        return res
+
+
 class AccountPayment(models.Model):
     _inherit = "account.payment"
 
@@ -47,6 +66,15 @@ class AccountPayment(models.Model):
         for payment in self:
             if payment.payment_method_code == "SEPA" and not(payment.partner_bank_id):
                 raise exceptions.ValidationError(_("The partner bank account is mandatory when using the SEPA method"))
+
+    @api.one
+    @api.constrains('company_id')
+    def _vat_required(self):
+        """Ensure the company has a fiscal number
+        """
+        for payment in self:
+            if payment.payment_method_code == "SEPA" and not(payment.company_id.vat):
+                raise exceptions.ValidationError(_("No fiscal number set on your company"))
 
     def _check_bba_comm(self):
         """Checks if the bba communication of `self` is well-formed"""

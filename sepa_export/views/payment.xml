@@ -45,7 +45,7 @@
    
     <record id="sepa_account_payment_from_invoices" model="ir.ui.view">
         <field name="name">sepa_account_payment_from_invoices</field>
-        <field name="model">account.payment</field>
+        <field name="model">account.register.payments</field>
         <field name="inherit_id" ref="account.view_account_payment_from_invoices"/>
         <field name="arch" type="xml">
             <xpath expr="//field[@name='payment_method_code']" position="after">
