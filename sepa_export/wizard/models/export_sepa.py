@@ -19,18 +19,9 @@
 #
 ##############################################################################
 
-import jinja2
-import logging
-import base64
-from os import path
-import time
-import operator
-from itertools import groupby
-from lxml import etree
-import StringIO
-from openerp.addons.base.res.res_bank import sanitize_account_number
-from openerp import models, fields, exceptions, api
+from openerp import models, api
 from openerp.tools.translate import _
+import logging
 
 _logger = logging.getLogger(__name__)
 
@@ -43,82 +34,10 @@ class ExportSEPAWiz(models.TransientModel):
     """
     _name = 'account.export_sepa_wiz'
 
-    def _validate_file(self, xml_data):
-        # validate the generated XML schema
-        xsd_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'data', 'pain.001.001.03.xsd'))
-        with open(xsd_path) as xsd_file:
-            schema_root = etree.parse(xsd_file)
-            schema = etree.XMLSchema(schema_root)
-            xml_data = etree.parse(StringIO.StringIO(xml_data))
-            if not(schema.validate(xml_data)):
-                raise exceptions.ValidationError(_("The generated SEPA file contains errors:\n %s") %
-                                                 '\n'.join([str(err) for err in schema.error_log]))
-
-    def _get_sepa_id(self, payments):
-        """Create the SEPA file main identifier
-
-        The identifier is 35 characters maximum, but it is recommended to limit it to 30 characters. The default code
-        is "[code of the journal]/[date in %Y%m%d format]/[sequential number per day and journal]"
-        Precondition:
-            The payments are all in state "posted" and on the same journal
-        """
-        prefix = "%s/%s/" % (payments[0].journal_id.code, time.strftime('%Y%m%d'))
-        existing = self.env['account.sepa_file'].search_count([('name', '=like', prefix + '%')])
-        return "%s%03d" % (prefix, existing + 1)
-
-    def _render_template(self, **kwargs):
-        xml_path = path.realpath(path.join(path.dirname(__file__), '..', '..', 'templates'))
-        loader = jinja2.FileSystemLoader(xml_path)
-        env = jinja2.Environment(loader=loader, autoescape=True)
-        return env.get_template('sepa_001.001.03.xml').render(**kwargs)
-
-    def _ensure_bank_bic(self, payments):
-        """Ensure the partner bank account has a BIC code
-        """
-        for p in payments:
-            for bnk in [p.partner_bank_id.bank_id, p.journal_id.bank_id]:
-                if not(bnk.bic):
-                    raise exceptions.ValidationError(_("The bank account %s (%s) has no BIC code") %
-                                                     (bnk.acc_number, bnk.partner_id.name or _('No partner')))
-
     @api.multi
     def export_sepa(self):
-        """Export payments (given in 'active_ids') to SEPA files
-
-        The wizard exports one file per journal used for the payments. Each file is attached to a 'account.sepa_file'
-        object from which the XML file is downloadable
-        """
-        def sort_key(pay): return pay.journal_id
-
-        def format_comm(comm): return filter(str.isdigit, str(comm))
-
-        def raise_error(msg): raise Exception(msg)
-        pay_obj = self.env['account.payment']
-        all_payments = pay_obj.browse(self._context['active_ids'])
-        all_payments = all_payments.filtered(lambda p: p.payment_type == "outbound" and p.state == 'posted' and
-                                             p.payment_method_code == "SEPA")
-        if not(all_payments):
-            raise exceptions.Warning(_("No SEPA payments to export"))
-        self._ensure_bank_bic(all_payments)
-
-        sepa_files = self.env['account.sepa_file']
-        for _journal, payment_list in groupby(all_payments.sorted(key=sort_key), key=sort_key):
-            payments = reduce(operator.add, payment_list, pay_obj.browse())
-            amount_total = sum(payments.mapped(lambda p: p.amount))
-            reference = self._get_sepa_id(payments)
-            now = time.strftime('%Y-%m-%dT%H:%M:%S')
-            company = payments[0].company_id
-            company_vat = filter(str.isdigit, str(company.vat) or '')
-            format_iban = sanitize_account_number
-            pay_nbr = len(payments)
-            kwargs = locals().copy()
-            del kwargs['self']
-            sepa_data = self._render_template(**kwargs).encode('utf-8')
-            self._validate_file(sepa_data)
-            sepa_files += sepa_files.create({'name': reference,
-                                             'xml_file': base64.b64encode(sepa_data),
-                                             'payment_ids': payments.mapped(lambda p: (4, p.id))})
-            payments.write({'state': 'sent'})
+        all_payments = self.env['account.payment'].browse(self._context['active_ids'])
+        sepa_files = all_payments._create_sepa_files()
         return {'context': self._context,
                 'domain': "[('id', 'in', %s)]" % sepa_files.ids,
                 'name': _('SEPA Files'),
