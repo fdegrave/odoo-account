@@ -63,6 +63,16 @@ class AccountPayment(models.Model):
     communication_type = fields.Selection([('none', 'Free Communication'), ('bba', 'BBA Structured Communication')],
                                           required=True, default='none', string="Communication Type")
 
+    @api.model
+    def default_get(self, fields):
+        """Get the partner bank from the bill"""
+        res = super(AccountPayment, self).default_get(fields)
+        context = dict(self._context or {})
+        if context.get('active_model') == 'account.invoice' and context.get('active_ids'):
+            invoice = self.env['account.invoice'].browse(context['active_ids'][:1])
+            res['partner_bank_id'] = invoice.partner_bank_id.id
+        return res
+
     @api.onchange('partner_id')
     def _onchange_partner(self):
         return {'domain': {'partner_bank_id': [('partner_id', '=', self.partner_id.id or -1)]}}
