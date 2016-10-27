@@ -18,7 +18,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from openerp import models, fields
+from odoo import models, fields
 import logging
 
 _logger = logging.getLogger(__name__)

@@ -18,11 +18,11 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-from openerp import models, fields, api, exceptions
-from openerp.tools.translate import _
+from odoo import models, fields, api, exceptions
+from odoo.tools.translate import _
 import logging
 from itertools import groupby
-from openerp.addons.base.res.res_bank import sanitize_account_number
+from odoo.addons.base.res.res_bank import sanitize_account_number
 import operator
 import base64
 import re

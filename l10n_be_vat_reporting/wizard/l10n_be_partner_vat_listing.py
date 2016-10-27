@@ -26,9 +26,9 @@
 
 import time
 import base64
-from openerp.tools.translate import _
-from openerp.osv import fields, osv
-from openerp.report import report_sxw
+from odoo.tools.translate import _
+from odoo.osv import fields, osv
+from odoo.report import report_sxw
 
 class vat_listing_clients(osv.osv_memory):
     _name = 'vat.listing.clients'

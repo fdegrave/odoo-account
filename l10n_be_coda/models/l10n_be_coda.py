@@ -20,10 +20,10 @@
 ##############################################################################
 import time
 
-from openerp import models, _
-from openerp.exceptions import ValidationError
-from openerp import tools
-from openerp.addons.base.res.res_bank import sanitize_account_number
+from odoo import models, _
+from odoo.exceptions import ValidationError
+from odoo import tools
+from odoo.addons.base.res.res_bank import sanitize_account_number
 
 import logging
 
