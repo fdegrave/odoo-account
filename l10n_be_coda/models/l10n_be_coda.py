@@ -19,6 +19,7 @@
 #
 ##############################################################################
 import time
+import re
 
 from odoo import models, _
 from odoo.exceptions import ValidationError
@@ -301,17 +302,8 @@ class AccountBankStatementImport(models.TransientModel):
     _inherit = 'account.bank.statement.import'
 
     def _is_coda(self, data_file):
-        """Test if `datafile` contains a CODA file"""
-        try:
-            for line in filter(None, data_file.split('\n')):
-                if line[0] == '0':
-                    st = {}
-                    CodaImport()._parse_line_0(line, st)
-                    return st.get('version') in ['1', '2']
-                else:
-                    return False
-        except:
-            return False
+        # Matches the first 24 characters of a CODA file, as defined by the febelfin specifications
+        return re.match('0{5}\d{9}05[ D] +', data_file) is not None
 
     def _parse_file(self, data_file):
         """ Each module adding a file support must extends this method. It processes the file if it can, returns super
