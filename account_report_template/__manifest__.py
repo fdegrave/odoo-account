@@ -1,5 +1,5 @@
 {
-    "name": "University Modules Accounting Reports",
+    "name": "Accounting Reports Template Engine",
     "version": "0.1a",
     "depends": ["report_table", "account"],
     "author": "University of Namur",

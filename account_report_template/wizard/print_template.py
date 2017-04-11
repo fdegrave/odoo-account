@@ -35,7 +35,6 @@ class AccountTemplate(models.TransientModel):
                                ('last_quarter', "Last Quarter"),
                                ('last_month', "Last Month"),
                                ('custom', "Custom")], string="Date Range", required=True, default="this_year")
-    period_name = fields.Char("Period Name")
     from_date = fields.Date("From Date", required=True, default=fields.Date.today())
     to_date = fields.Date("To Date", required=True, default=fields.Date.today())
     quarter = fields.Integer("Quarter")
