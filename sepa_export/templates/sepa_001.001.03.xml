@@ -60,7 +60,8 @@
           </FinInstnId>
         </CdtrAgt>
         <Cdtr>
-          <Nm>{{ payment.partner_id.name }}</Nm>
+          {% set partner_name = payment.partner_id.name[:70] %}
+          <Nm>{{ partner_name }}</Nm>
         </Cdtr>
         <CdtrAcct>
           <Id>

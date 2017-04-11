@@ -19,8 +19,7 @@
 #
 ##############################################################################
 
-from odoo import models, fields, exceptions, api, _
-from odoo.osv import expression
+from odoo import models, fields, api
 from datetime import date
 from dateutil.relativedelta import relativedelta
 from calendar import monthrange

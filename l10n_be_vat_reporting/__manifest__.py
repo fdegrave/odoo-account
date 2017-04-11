@@ -21,42 +21,26 @@
 
 {
     'name': 'Belgium - VAT Reporting',
-    'version': '1.1',
+    'version': '0.1a',
     'category': 'Localization/Account Charts',
     'description': """
-Wizards provided by this module:
---------------------------------
-    * Partner VAT Intra: Enlist the partners with their related VAT and invoiced
-      amounts. Prepares an XML file format.
-
-        **Path to access :** Invoicing/Reporting/Legal Reports/Belgium Statements/Partner VAT Intra
-    * Periodical VAT Declaration: Prepares an XML file for Vat Declaration of
-      the Main company of the User currently Logged in.
-
-        **Path to access :** Invoicing/Reporting/Legal Reports/Belgium Statements/Periodical VAT Declaration
-    * Annual Listing Of VAT-Subjected Customers: Prepares an XML file for Vat
-      Declaration of the Main company of the User currently Logged in Based on
-      Fiscal year.
-
-        **Path to access :** Invoicing/Reporting/Legal Reports/Belgium Statements/Annual Listing Of VAT-Subjected Customers
-
+    This module depends on account_report_template (https://github.com/unamur-dev/odoo-account) and provides a VAT
+    reporting for Belgium.
+    
+    THIS IS AN ALPHA VERSION. All feedback is welcome. It should be all finished and tested by September.
     """,
-    'author': 'University of Namur & Noviat & OpenERP SA',
+    'author': 'University of Namur',
     'depends': [
         'l10n_be',
+        'account_report_template',
     ],
     'data': [
-        'wizard/l10n_be_account_vat_declaration_view.xml',
-        'wizard/l10n_be_vat_intra_view.xml',
-        'wizard/l10n_be_partner_vat_listing.xml',
-        'reports/report_vatintraprint.xml',
-        'reports/report_vatpartnerlisting.xml',
-        'l10n_be_sequence.xml',
-        'l10n_be_reports.xml',
+        'data/vat_declaration.xml',
+        'views/web_js.xml',
+    ],
+    'qweb': [
+        "static/src/xml/vat_export.xml",
     ],
     'demo': [],
-    'installable': False,
-    'website': 'https://www.odoo.com/page/accounting',
+    'installable': True
 }
-
-# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:

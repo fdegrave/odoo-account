@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates>
+     <t t-extend="report.client_action.ControlButtons">
+        <t t-jquery=".o_report_print" t-operation="after">
+            <button type="button" class="btn btn-primary btn-sm vat_report_xml_export"
+                    title="Export XML" style="display:none;">Export XML</button>
+        </t>
+    </t>
+</templates>

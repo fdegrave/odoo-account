@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ns2:VATConsignment xmlns="http://www.minfin.fgov.be/InputCommon" xmlns:ns2="http://www.minfin.fgov.be/VATConsignment" VATDeclarationsNbr="1">
+    <ns2:Representative>
+        <RepresentativeID identificationType="NVAT" issuedBy="BE">{{ company_vat }}</RepresentativeID>
+        <Name>{{ company.name }}</Name>
+        <Street>{{ partner.street or "" }} {{ partner.street2 or "" }}</Street>
+        <PostCode>{{ partner.zip or "" }}</PostCode>
+        <City>{{ partner.city or "" }}</City>
+        <CountryCode>{{ partner.country_id.zip or "" }}</CountryCode>
+        <EmailAddress>{{ partner.country_id.email or "" }}</EmailAddress>
+        <Phone>{{ phone or "" }}</Phone>
+    </ns2:Representative>
+    <ns2:VATDeclaration SequenceNumber="1" DeclarantReference="1012017">
+        <ns2:Declarant>
+            <VATNumber xmlns="http://www.minfin.fgov.be/InputCommon">{{ company_vat }}</VATNumber>
+            <Name>{{ company.name }}</Name>
+            <Street>{{ partner.street or "" }} {{ partner.street2 or "" }}</Street>
+            <PostCode>{{ partner.zip or "" }}</PostCode>
+            <City>{{ partner.city or "" }}</City>
+            <CountryCode>{{ partner.country_id.zip or "" }}</CountryCode>
+            <EmailAddress>{{ partner.country_id.email or "" }}</EmailAddress>
+            <Phone>{{ phone or "" }}</Phone>
+        </ns2:Declarant>
+        <ns2:Period>
+            <ns2:Quarter>{{ quarter }}</ns2:Quarter>
+            <ns2:Year>2017</ns2:Year>
+        </ns2:Period>
+        <ns2:Data>{% for tag in tags %}
+            <ns2:Amount GridNumber="{{tag}}">{{ amount(tag) }}</ns2:Amount>{% endfor %}
+        </ns2:Data>
+        <ns2:ClientListingNihil>NO</ns2:ClientListingNihil>
+        <ns2:Ask Restitution="NO" Payment="NO"/>
+        <ns2:Comment></ns2:Comment>
+    </ns2:VATDeclaration> 
+</ns2:VATConsignment>
+    

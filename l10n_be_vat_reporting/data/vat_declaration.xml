@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+             
+    <record model="account_report_template.report_template" id="declaration_template">
+        <field name="name">Déclaration périodique à la TVA</field>
+        <field name="show_debit_credit" eval="False"/>
+    </record>
+    
+    <!-- ********** -->
+    <!-- Operations -->
+    <!-- ********** -->
+    <record model="account_report_template.report_template_line" id="operations_template">
+        <field name="template_id" ref="l10n_be_vat_reporting.declaration_template"/>
+        <field name="name">Opérations</field>
+        <field name="sequence" eval="1"/>
+    </record>
+    
+    <!-- Operations - II A la sortie -->
+    <record model="account_report_template.report_template_line" id="ii_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.operations_template"/>
+        <field name="name">II À la sortie</field>
+        <field name="sequence" eval="1"/>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax00_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">00 - Opérations soumises à un régime particulier</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID00</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_00').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID00.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax01_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">01 - Opérations avec TVA à 6%</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID01</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_01').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID01.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax02_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">02 - Opérations avec TVA à 12%</field>
+        <field name="sequence" eval="3"/>
+        <field name="code">GRID02</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_02').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID02.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax03_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">03 - Opérations avec TVA à 21%</field>
+        <field name="sequence" eval="4"/>
+        <field name="code">GRID03</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_03').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID03.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax44_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">44 - Services intra-communautaires</field>
+        <field name="sequence" eval="5"/>
+        <field name="code">GRID44</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_44').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID44.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax45_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">45 - Opérations avec TVA due par le cocontractant</field>
+        <field name="sequence" eval="6"/>
+        <field name="code">GRID45</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_45').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID45.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax46_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">46 - Livraisons intra-communautaire exemptées</field>
+        <field name="sequence" eval="7"/>
+        <field name="code">GRID46</field>
+        <field name="balance_formula">GRID46L.balance + GRID46T.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax46l_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.betax46_template"/>
+        <field name="name">46L - Livraisons biens intra-communautaire exemptées</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID46L</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_46L').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID46L.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax46t_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.betax46_template"/>
+        <field name="name">46T - Livraisons biens intra-communautaire exemptées</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID46T</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_46T').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID46T.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax47_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">47 - Autres opérations exemptées</field>
+        <field name="sequence" eval="8"/>
+        <field name="code">GRID47</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_47').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID47.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax48_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">48 - Notes de crédit aux opérations grilles [44] et [46]</field>
+        <field name="sequence" eval="9"/>
+        <field name="code">GRID48</field>
+        <field name="balance_formula">GRID48s44.balance + GRID48s46L.balance + GRID48s46T.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax48s44_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.betax48_template"/>
+        <field name="name">48s44 - Notes de crédit aux opérations grilles [44]</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID48s44</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_48s44').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_refund')]
+        </field>
+        <field name="balance_formula">-GRID48s44.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax48s46l_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.betax48_template"/>
+        <field name="name">48s46L - Notes de crédit aux opérations des grilles [46L]</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID48s46L</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_48s46L').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_refund')]
+        </field>
+        <field name="balance_formula">-GRID48s46L.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax48s46t_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.betax48_template"/>
+        <field name="name">48s46T - Notes de crédit aux opérations des grilles [46T]</field>
+        <field name="sequence" eval="3"/>
+        <field name="code">GRID48s46T</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_48s46T').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_refund')]
+        </field>
+        <field name="balance_formula">GRID48s46T.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax49_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.ii_template"/>
+        <field name="name">49 - Notes de crédit aux opérations du point II</field>
+        <field name="sequence" eval="10"/>
+        <field name="code">GRID49</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_49').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_refund')]
+        </field>
+        <field name="balance_formula">GRID49.balance</field>
+    </record>
+    
+    <!-- Operations - III A l'entrée -->
+    <record model="account_report_template.report_template_line" id="iii_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.operations_template"/>
+        <field name="name">III À l'entrée</field>
+        <field name="sequence" eval="2"/>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax81_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">81 - Marchandises, matières premières et auxiliaires</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID81</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', (ref('l10n_be.tax_tag_81') + ref('l10n_be.tax_tag_81_not_deductible')).ids)]
+        </field>
+        <field name="balance_formula">GRID81.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax82_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">82 - Services et biens divers</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID82</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', (ref('l10n_be.tax_tag_82') + ref('l10n_be.tax_tag_82_not_deductible')).ids)]
+        </field>
+        <field name="balance_formula">GRID82.balance</field>
+    </record>
+
+    <record model="account_report_template.report_template_line" id="betax83_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">83 - Biens d'investissement</field>
+        <field name="sequence" eval="3"/>
+        <field name="code">GRID83</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', (ref('l10n_be.tax_tag_83') + ref('l10n_be.tax_tag_83_not_deductible')).ids)]
+        </field>
+        <field name="balance_formula">GRID83.balance</field>
+    </record>
+
+    <record model="account_report_template.report_template_line" id="betax84_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">84 - Notes de crédits sur opérations des grilles [86] et [88]</field>
+        <field name="sequence" eval="4"/>
+        <field name="code">GRID84</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_84').ids), 
+             '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0),
+                  ('invoice_id.type', '=', 'in_refund')]
+        </field>
+        <field name="balance_formula">-GRID84.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax85_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">85 - Notes de crédits autres opérations</field>
+        <field name="sequence" eval="5"/>
+        <field name="code">GRID85</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', (ref('l10n_be.tax_tag_85') + ref('l10n_be.tax_tag_85_not_deductible')).ids), 
+             '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0),
+                  ('invoice_id.type', '=', 'in_refund')]
+        </field>
+        <field name="balance_formula">-GRID85.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax86_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">86 - Acquisition intra-communautaires et ventes ABC</field>
+        <field name="sequence" eval="6"/>
+        <field name="code">GRID86</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_86').ids)]
+        </field>
+        <field name="balance_formula">GRID86.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax87_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">87 - Autres opérations</field>
+        <field name="sequence" eval="7"/>
+        <field name="code">GRID87</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_87').ids)]
+        </field>
+        <field name="balance_formula">GRID87.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax88_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iii_template"/>
+        <field name="name">88 - Acquisition services intra-communautaires</field>
+        <field name="sequence" eval="8"/>
+        <field name="code">GRID88</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_88').ids)]
+        </field>
+        <field name="balance_formula">GRID88.balance</field>
+    </record>
+    
+    <!-- ***** -->
+    <!-- Taxes -->
+    <!-- ***** -->
+    <record model="account_report_template.report_template_line" id="taxes_template">
+        <field name="template_id" ref="l10n_be_vat_reporting.declaration_template"/>
+        <field name="name">Taxes</field>
+        <field name="sequence" eval="2"/>
+    </record>
+    
+    <!-- Taxes - IV Dues -->
+    <record model="account_report_template.report_template_line" id="iv_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.taxes_template"/>
+        <field name="name">IV Dues</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRIDIV</field>
+        <field name="balance_formula">GRID54.balance + GRID55.balance + GRID56.balance + GRID57.balance + GRID61.balance + GRID63.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax54_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">54 - TVA sur opérations des grilles [01], [02], [03]</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID54</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_54').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_invoice')]
+        </field>
+        <field name="balance_formula">-GRID54.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax55_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">55 - TVA sur opérations des grilles [86] et [88]</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID55</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_55').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('debit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_invoice')]
+        </field>
+        <field name="balance_formula">GRID55.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax56_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">56 - TVA sur opérations de la grille [87]</field>
+        <field name="sequence" eval="3"/>
+        <field name="code">GRID56</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_56').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('debit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_invoice')]
+        </field>
+        <field name="balance_formula">GRID56.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax57_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">57 - TVA relatives aux importations</field>
+        <field name="sequence" eval="4"/>
+        <field name="code">GRID57</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_57').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('debit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_invoice')]
+        </field>
+        <field name="balance_formula">GRID57.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax61_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">61 - Diverses régularisations en faveur de l'État</field>
+        <field name="sequence" eval="5"/>
+        <field name="code">GRID61</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_61').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_refund')]
+        </field>
+        <field name="balance_formula">GRID61.debit</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax63_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.iv_template"/>
+        <field name="name">63 - TVA à reverser sur notes de crédit reçues</field>
+        <field name="sequence" eval="6"/>
+        <field name="code">GRID63</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_63').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('credit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_refund')]
+        </field>
+        <field name="balance_formula">-GRID63.debit</field>
+    </record>
+    
+    <!-- Taxes - V Déductibles -->
+    <record model="account_report_template.report_template_line" id="v_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.taxes_template"/>
+        <field name="name">V Déductibles</field>
+        <field name="sequence" eval="4"/>
+        <field name="code">GRIDV</field>
+        <field name="balance_formula">GRID59.balance + GRID62.balance + GRID64.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax59_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.v_template"/>
+        <field name="name">59 - TVA déductible</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID59</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_59').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('debit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'in_invoice')]
+        </field>
+        <field name="balance_formula">GRID59.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax64_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.v_template"/>
+        <field name="name">64 - TVA à récupérer sur notes de crédit délivrées</field>
+        <field name="sequence" eval="3"/>
+        <field name="code">GRID64</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_64').ids), 
+            '|', '&amp;', ('invoice_id', '=', False), ('debit', '&gt;', 0), 
+                 ('invoice_id.type', '=', 'out_refund')]
+        </field>
+        <field name="balance_formula">GRID64.balance</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax62_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.v_template"/>
+        <field name="name">62 - Diverses régularisations en faveur du déclarant</field>
+        <field name="sequence" eval="5"/>
+        <field name="code">GRID62</field>
+        <field name="domain">
+            [('tax_ids.tag_ids', 'in', ref('l10n_be.tax_tag_62').ids)]
+        </field>
+        <field name="balance_formula">GRID62.credit</field>
+    </record>
+    
+    <!-- Taxes - VI Soldes -->
+    <record model="account_report_template.report_template_line" id="vi_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.taxes_template"/>
+        <field name="name">VI Soldes</field>
+        <field name="sequence" eval="5"/>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax71_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.vi_template"/>
+        <field name="name">71 - Taxes dues à l'État</field>
+        <field name="sequence" eval="1"/>
+        <field name="code">GRID71</field>
+        <field name="balance_formula">(GRIDIV.balance - GRIDV.balance) if (GRIDIV.balance > GRIDV.balance) else 0.0</field>
+    </record>
+    
+    <record model="account_report_template.report_template_line" id="betax72_template">
+        <field name="parent_id" ref="l10n_be_vat_reporting.vi_template"/>
+        <field name="name">72 - Somme due par l'État</field>
+        <field name="sequence" eval="2"/>
+        <field name="code">GRID72</field>
+        <field name="balance_formula">(GRIDV.balance - GRIDIV.balance) if (GRIDV.balance > GRIDIV.balance) else 0.0</field>
+    </record>
+
+</odoo>
