@@ -36,8 +36,8 @@ class AccountTemplate(models.TransientModel):
                                ('last_month', "Last Month"),
                                ('custom', "Custom")], string="Date Range", required=True, default="this_year")
     period_name = fields.Char("Period Name")
-    from_date = fields.Date("From Date", required=True)
-    to_date = fields.Date("To Date", required=True)
+    from_date = fields.Date("From Date", required=True, default=fields.Date.today())
+    to_date = fields.Date("To Date", required=True, default=fields.Date.today())
     quarter = fields.Integer("Quarter")
     template_ids = fields.Many2many(comodel_name='account_report_template.report_template',
                                     relation='account_report_template_wiz_rel',
