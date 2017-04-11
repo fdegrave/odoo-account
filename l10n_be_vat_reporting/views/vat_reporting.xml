@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<odoo>
+
+    <record model="ir.actions.act_window" id="vat_periodic_report_action">
+        <field name="name">VAT Periodic Declaration</field>
+        <field name="res_model">account_report_template.print_template_wiz</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context" eval="{'hide_templates': True, 
+                                     'default_period': 'this_quarter', 
+                                     'default_template_ids': [(4, ref('l10n_be_vat_reporting.declaration_template'))]}"/>
+    </record>
+          
+    <menuitem id="l10n_be_report_menu" name="Belgian Declarations" parent="account.menu_finance_reports" sequence="20"/>
+              
+    <menuitem id="vat_periodic_report_menu" name="VAT Periodic Declaration" parent="l10n_be_report_menu" 
+              action="vat_periodic_report_action" sequence="30"/>
+	
+</odoo>

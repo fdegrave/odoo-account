@@ -12,7 +12,7 @@
                     <field name="from_date" attrs="{'readonly': [('period','!=','custom')]}"/>
                     <field name="to_date" attrs="{'readonly': [('period','!=','custom')]}"/>
                 </group>
-                <group name="templates">
+                <group name="templates" invisible="context.get('hide_templates')">
                     <field name="template_ids"/>
                 </group>
              <footer>

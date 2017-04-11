@@ -26,7 +26,7 @@
     'description': """
     This module depends on account_report_template (https://github.com/unamur-dev/odoo-account) and provides a VAT
     reporting for Belgium.
-    
+
     THIS IS AN ALPHA VERSION. All feedback is welcome. It should be all finished and tested by September.
     """,
     'author': 'University of Namur',
@@ -37,6 +37,7 @@
     'data': [
         'data/vat_declaration.xml',
         'views/web_js.xml',
+        'views/vat_reporting.xml',
     ],
     'qweb': [
         "static/src/xml/vat_export.xml",
