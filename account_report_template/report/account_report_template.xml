@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <report id="report_template_action"
+            model="account_report_template.print_template_wiz"
+            string="Account Template Report"
+            name="account_report_template.print_template"
+            file="account_report_template.print_template_qweb"
+            report_type="qweb-html" />
+    
+    <record model="ir.actions.report.xml" id="account_report_template.report_template_action">
+        <field name="print_report_name">object.template_ids[0].name + '.pdf'</field>
+    </record> 
+    
+    <template id="print_template_qweb"/>
+    
+</odoo>

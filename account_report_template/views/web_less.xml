@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="assets_backend" name="account_report_template assets" inherit_id="web.assets_backend">
+            <xpath expr="." position="inside">
+            </xpath>
+        </template>
+    </data>
+</odoo>

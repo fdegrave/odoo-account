@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record model="ir.ui.view" id="template_search">
+        <field name="name">template_search</field>
+        <field name="model">account_report_template.report_template</field>
+        <field name="type">search</field>
+        <field name="arch" type="xml">
+            <search>
+            </search> 
+        </field>
+    </record>
+             
+    <record model="ir.ui.view" id="template_tree">
+        <field name="name">template_tree</field>
+        <field name="model">account_report_template.report_template</field>
+        <field name="type">tree</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="name"/>
+            </tree> 
+        </field>
+    </record>
+
+    
+    <record model="ir.ui.view" id="template_form">
+        <field name="name">template_form</field>
+        <field name="model">account_report_template.report_template</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group> 
+                        <field name="name"/>
+                    </group>
+                    <group> 
+                        <field name="show_debit_credit"/>
+                    </group>
+                </group>
+                <group colspan="4" col="1" string="Lines">
+                     <field name="line_ids" nolabel="1">
+			            <tree>
+                            <field name="sequence" widget="handle"/>
+	                        <field name="name"/>
+			            </tree>
+                     </field>                                 
+                </group>
+            </form> 
+        </field>
+    </record>
+
+    
+    <record model="ir.ui.view" id="template_line_form">
+        <field name="name">template_line_form</field>
+        <field name="model">account_report_template.report_template_line</field>
+        <field name="type">form</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group> 
+                        <field name="code"/>
+                        <field name="name"/>
+                        <field name="domain"/>
+                    </group>
+                    <group> 
+                        <field name="balance_formula"/>
+                        <field name="debit_formula"/>
+                        <field name="credit_formula"/>
+                        <field name="style"/>
+                    </group>
+                </group>
+                <group colspan="4" col="1" string="Sub-Lines">
+                     <field name="children_ids" nolabel="1">
+                        <tree>
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="level"/>
+                        </tree> 
+                     </field>                                             
+                </group>
+            </form> 
+        </field>
+    </record>
+    
+    <record model="ir.actions.act_window" id="template_action">
+        <field name="name">Account Report Templates</field>
+        <field name="res_model">account_report_template.report_template</field>
+        <field name="view_type">form</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+    
+    <menuitem id="template_menu" name="Account Report Templates"
+              sequence="15" parent="account.menu_account_reports" action="template_action"/>
+    
+    
+    
+</odoo>
