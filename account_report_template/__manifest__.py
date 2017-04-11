@@ -3,9 +3,12 @@
     "version": "1.0",
     "depends": ["report_table", "account"],
     "author": "University of Namur",
-    "category": "University Management",
+    "category": "Accounting",
     "description": """
-        """,
+    This is a module doing the same things as the official Odoo module for accounting reports, but the inner working is
+    completely different (the authors have never seen the code of the closed-source module).
+    It depends on the generic table_report module (https://github.com/unamur-dev/odoo-tools).
+    """,
     'demo': [],
     'data': [
         'views/template.xml',
