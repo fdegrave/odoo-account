@@ -38,6 +38,7 @@ class AccountTemplate(models.TransientModel):
     from_date = fields.Date("From Date", required=True, default=fields.Date.today())
     to_date = fields.Date("To Date", required=True, default=fields.Date.today())
     quarter = fields.Integer("Quarter")
+    month = fields.Integer("Month")
     template_ids = fields.Many2many(comodel_name='account_report_template.report_template',
                                     relation='account_report_template_wiz_rel',
                                     column1='wiz_id', column2='template_id', string="Templates to Print", required=True)
@@ -71,8 +72,13 @@ class AccountTemplate(models.TransientModel):
         first_date = last_date + relativedelta(days=1) - relativedelta(years=1)
         return fields.Date.to_string(first_date), last_day
 
+    def _set_month(self):
+        if not(self.month) or self.get_month_dates(day=self.from_date) != (self.from_date, self.to_date):
+            self.month = 0
+
     def get_month_dates(self, last=False):
         day = date.today() - relativedelta(months=1) if last else date.today()
+        self.month = day.month
         first_day = "%04d-%02d-%02d" % (day.year, day.month, 1)
         last_day = "%04d-%02d-%02d" % (day.year, day.month, monthrange(day.year, day.month)[1])
         return first_day, last_day
@@ -84,10 +90,12 @@ class AccountTemplate(models.TransientModel):
             meth = getattr(self, 'get_%s_dates' % what)
             self.from_date, self.to_date = meth(last=when == 'last')
 
+    @api.one
     def print_templates(self):
         """Print the templates """
         self._onchange_period()
         self._set_quarter()
+        self._set_month()
         dom = [('date', '>=', self.from_date), ('date', '<=', self.to_date)]
         self.table_ids = self.template_ids.mapped(lambda t: t._to_table(dom))
         res = self.env['report'].get_action(self, 'account_report_template.print_template')

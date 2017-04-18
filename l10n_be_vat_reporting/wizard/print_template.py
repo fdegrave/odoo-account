@@ -19,7 +19,7 @@
 #
 ##############################################################################
 
-from odoo import models, exceptions
+from odoo import models, exceptions, api
 from os import path
 from lxml import etree
 import StringIO
@@ -36,6 +36,7 @@ TAGS = ['00', '01', '02', '03',
 class PrintTemplateWiz(models.TransientModel):
     _inherit = "account_report_template.print_template_wiz"
 
+    @api.one
     def print_templates(self):
         ctxt = {}
         if self.template_ids == self.env.ref('l10n_be_vat_reporting.declaration_template'):
@@ -56,9 +57,10 @@ class PrintTemplateWiz(models.TransientModel):
     def _render_template(self, **kwargs):
         xml_path = path.realpath(path.join(path.dirname(__file__), '..', 'data'))
         loader = jinja2.FileSystemLoader(xml_path)
-        env = jinja2.Environment(loader=loader, autoescape=True)
+        env = jinja2.Environment(loader=loader, autoescape=True, line_statement_prefix="#")
         return env.get_template('xml_template.xml').render(**kwargs)
 
+    @api.one
     def export_xml(self):
         def get_amount(tag):
             for row in self.table_ids[0].to_literal()['rows']:
@@ -70,8 +72,8 @@ class PrintTemplateWiz(models.TransientModel):
                                          "Declaration\" report"))
 
         if self.template_ids == self.env.ref('l10n_be_vat_reporting.declaration_template'):
-            if not self.quarter:
-                raise exceptions.ValidationError(_("You can only export in XML for a complete quarter"))
+            if not (self.quarter or self.month):
+                raise exceptions.ValidationError(_("You can only export in XML for a complete month or quarter"))
             company = self.env['res.company']._company_default_get()
             partner = company.partner_id
             values = {
@@ -81,7 +83,8 @@ class PrintTemplateWiz(models.TransientModel):
                 "company_vat": filter(str.isdigit, str(company.vat) or ''),
                 'phone': filter(lambda c: c not in ' ./()', partner.phone or ''),
                 "amount": get_amount,
-                "quarter": self.quarter
+                "quarter": self.quarter,
+                "month": self.month,
             }
             res = self._render_template(**values)
             return 'XML_VAT_declaration.xml', res

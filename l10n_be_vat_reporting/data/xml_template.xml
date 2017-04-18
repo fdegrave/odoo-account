@@ -22,11 +22,16 @@
             <Phone>{{ phone or "" }}</Phone>
         </ns2:Declarant>
         <ns2:Period>
-            <ns2:Quarter>{{ quarter }}</ns2:Quarter>
+            {% if quarter %}<ns2:Quarter>{{ quarter }}</ns2:Quarter>
+            {% elif month %}<ns2:Month>{{ month }}</ns2:Month>{% endif %}
             <ns2:Year>2017</ns2:Year>
         </ns2:Period>
-        <ns2:Data>{% for tag in tags %}
-            <ns2:Amount GridNumber="{{tag}}">{{ amount(tag) }}</ns2:Amount>{% endfor %}
+        <ns2:Data>
+        # for tag in tags:
+        # if amount(tag):
+            <ns2:Amount GridNumber="{{tag}}">{{ amount(tag) }}</ns2:Amount>
+        # endif
+        # endfor
         </ns2:Data>
         <ns2:ClientListingNihil>NO</ns2:ClientListingNihil>
         <ns2:Ask Restitution="NO" Payment="NO"/>
