@@ -56,7 +56,8 @@ class AccountTemplate(models.TransientModel):
         else:
             day = fields.Date.from_string(day)
         quarter = 1 + (day.month - 1) // 3
-        self.quarter = quarter
+        if self:
+            self.quarter = quarter
         year = day.year
         first_month_of_quarter = 3 * quarter - 2
         last_month_of_quarter = 3 * quarter
@@ -78,7 +79,8 @@ class AccountTemplate(models.TransientModel):
 
     def get_month_dates(self, last=False):
         day = date.today() - relativedelta(months=1) if last else date.today()
-        self.month = day.month
+        if self:
+            self.month = day.month
         first_day = "%04d-%02d-%02d" % (day.year, day.month, 1)
         last_day = "%04d-%02d-%02d" % (day.year, day.month, monthrange(day.year, day.month)[1])
         return first_day, last_day
