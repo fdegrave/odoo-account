@@ -28,7 +28,6 @@ class ReportTable(models.AbstractModel):
     @api.multi
     def render_html(self, docids, data=None):
         wiz_ids = docids or self._context.get('active_ids')
-
         wiz = self.env["account_report_template.print_template_wiz"].browse(wiz_ids)
         tables = wiz.mapped('table_ids')
         return self.env['report.report_table.report_json_table'].render_html(tables.ids)

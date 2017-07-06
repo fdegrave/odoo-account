@@ -36,7 +36,7 @@ TAGS = ['00', '01', '02', '03',
 class PrintTemplateWiz(models.TransientModel):
     _inherit = "account_report_template.print_template_wiz"
 
-    @api.one
+    @api.multi
     def print_templates(self):
         ctxt = {}
         if self.template_ids == self.env.ref('l10n_be_vat_reporting.declaration_template'):
@@ -60,7 +60,7 @@ class PrintTemplateWiz(models.TransientModel):
         env = jinja2.Environment(loader=loader, autoescape=True, line_statement_prefix="#")
         return env.get_template('xml_template.xml').render(**kwargs)
 
-    @api.one
+    @api.multi
     def export_xml(self):
         def get_amount(tag):
             for row in self.table_ids[0].to_literal()['rows']:

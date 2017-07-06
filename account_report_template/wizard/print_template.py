@@ -74,11 +74,12 @@ class AccountTemplate(models.TransientModel):
         return fields.Date.to_string(first_date), last_day
 
     def _set_month(self):
-        if not(self.month) or self.get_month_dates(day=self.from_date) != (self.from_date, self.to_date):
+        if not(self.month) or self.get_month_dates(day=fields.Date.from_string(self.from_date)) != (self.from_date, self.to_date):
             self.month = 0
 
-    def get_month_dates(self, last=False):
-        day = date.today() - relativedelta(months=1) if last else date.today()
+    def get_month_dates(self, last=False, day=False):
+        if not day:
+            day = date.today() - relativedelta(months=1) if last else date.today()
         if self:
             self.month = day.month
         first_day = "%04d-%02d-%02d" % (day.year, day.month, 1)
@@ -92,7 +93,7 @@ class AccountTemplate(models.TransientModel):
             meth = getattr(self, 'get_%s_dates' % what)
             self.from_date, self.to_date = meth(last=when == 'last')
 
-    @api.one
+    @api.multi
     def print_templates(self):
         """Print the templates """
         self._onchange_period()
