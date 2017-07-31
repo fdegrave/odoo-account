@@ -21,7 +21,7 @@
 
 {
     'name': 'Belgium - VAT Reporting',
-    'version': '0.2a',
+    'version': '0.3a',
     'category': 'Localization/Account Charts',
     'description': """
     This module depends on account_report_template (https://github.com/unamur-dev/odoo-account) and provides a VAT
