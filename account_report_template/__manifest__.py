@@ -1,6 +1,6 @@
 {
     "name": "Accounting Reports Template Engine",
-    "version": "0.2a",
+    "version": "0.3a",
     "depends": ["report_table", "account"],
     "author": "University of Namur",
     "category": "Accounting",
